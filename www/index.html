@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ScanPOS – Mobile Point of Sale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-<script type="module">
-  import { BleClient } from 'https://unpkg.com/@capacitor-community/bluetooth-le@8.1.3/dist/plugin.js';
-  window.CapacitorBluetoothLe = { BleClient };
-</script>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -985,17 +982,17 @@ function newTransaction() {
 async function connectBluetooth() {
   try {
     showToast('Mencari printer...');
-    const { BleClient } = window.CapacitorBluetoothLe;
+    const BleClient = Capacitor.Plugins.BluetoothLe;
+    if (!BleClient) { showToast('Plugin BLE tidak tersedia', 'error'); return; }
     await BleClient.initialize();
-    const device = await BleClient.requestDevice({
+    const result = await BleClient.requestDevice({
       services: ['000018f0-0000-1000-8000-00805f9b34fb'],
     });
-    await BleClient.connect(device.deviceId);
-    btDevice = device;
+    await BleClient.connect({ deviceId: result.deviceId });
+    btDevice = result;
     btChar = '00002af1-0000-1000-8000-00805f9b34fb';
-    setBtConnected(true, device.name);
-    showToast('✅ Printer terhubung: ' + device.name, 'success');
-    BleClient.addListener('disconnected', () => { setBtConnected(false); showToast('Printer terputus', 'error'); });
+    setBtConnected(true, result.name);
+    showToast('✅ Printer terhubung: ' + result.name, 'success');
   } catch (e) { showToast('Gagal connect: ' + (e.message || e), 'error'); }
 }
 
@@ -1019,8 +1016,8 @@ function setBtConnected(connected, name = '') {
 async function disconnectBluetooth() {
   try {
     if (btDevice) {
-      const { BleClient } = window.CapacitorBluetoothLe;
-      await BleClient.disconnect(btDevice.deviceId);
+      const BleClient = Capacitor.Plugins.BluetoothLe;
+      await BleClient.disconnect({ deviceId: btDevice.deviceId });
     }
   } catch(e) {}
   setBtConnected(false);
@@ -1031,7 +1028,7 @@ async function disconnectBluetooth() {
 async function printReceipt() {
   if (!btChar || !btDevice) { showToast('Printer belum terhubung! Hubungkan dulu di Pengaturan.', 'error'); return; }
   try {
-    const { BleClient } = window.CapacitorBluetoothLe;
+    const BleClient = Capacitor.Plugins.BluetoothLe;
     const tx = lastTransaction;
     const storeInfo = settings;
     const lines = [
