@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ScanPOS – Mobile Point of Sale</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script type="module">
+  import { BleClient } from 'https://unpkg.com/@capacitor-community/bluetooth-le@8.1.3/dist/plugin.js';
+  window.CapacitorBluetoothLe = { BleClient };
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
 
