@@ -979,19 +979,19 @@ function newTransaction() {
 // BLUETOOTH PRINT
 // ============================================================
 async function connectBluetooth() {
-  if (!navigator.bluetooth) { showToast('Bluetooth tidak didukung browser ini', 'error'); return; }
   try {
     showToast('Mencari printer...');
-    btDevice = await navigator.bluetooth.requestDevice({
-      filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
-      optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+    const { BleClient } = window.CapacitorBluetoothLe;
+    await BleClient.initialize();
+    const device = await BleClient.requestDevice({
+      services: ['000018f0-0000-1000-8000-00805f9b34fb'],
     });
-    const server = await btDevice.gatt.connect();
-    const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-    btChar = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-    setBtConnected(true, btDevice.name);
-    showToast('✅ Printer terhubung: ' + btDevice.name, 'success');
-    btDevice.addEventListener('gattserverdisconnected', () => { setBtConnected(false); showToast('Printer terputus', 'error'); });
+    await BleClient.connect(device.deviceId);
+    btDevice = device;
+    btChar = '00002af1-0000-1000-8000-00805f9b34fb';
+    setBtConnected(true, device.name);
+    showToast('✅ Printer terhubung: ' + device.name, 'success');
+    BleClient.addListener('disconnected', () => { setBtConnected(false); showToast('Printer terputus', 'error'); });
   } catch (e) { showToast('Gagal connect: ' + (e.message || e), 'error'); }
 }
 
@@ -1012,24 +1012,31 @@ function setBtConnected(connected, name = '') {
   }
 }
 
-function disconnectBluetooth() {
-  if (btDevice && btDevice.gatt.connected) { btDevice.gatt.disconnect(); }
+async function disconnectBluetooth() {
+  try {
+    if (btDevice) {
+      const { BleClient } = window.CapacitorBluetoothLe;
+      await BleClient.disconnect(btDevice.deviceId);
+    }
+  } catch(e) {}
   setBtConnected(false);
+  btDevice = null; btChar = null;
   showToast('Printer diputuskan');
 }
 
 async function printReceipt() {
-  if (!btChar) { showToast('Printer belum terhubung! Hubungkan dulu di Pengaturan.', 'error'); return; }
+  if (!btChar || !btDevice) { showToast('Printer belum terhubung! Hubungkan dulu di Pengaturan.', 'error'); return; }
   try {
+    const { BleClient } = window.CapacitorBluetoothLe;
     const tx = lastTransaction;
     const storeInfo = settings;
     const lines = [
-      '\x1b\x61\x01', // center
+      '\x1b\x61\x01',
       storeInfo.storeName + '\n',
       (storeInfo.storeAddress || '') + '\n',
       (storeInfo.storePhone ? 'Telp: ' + storeInfo.storePhone + '\n' : ''),
       '--------------------------------\n',
-      '\x1b\x61\x00', // left
+      '\x1b\x61\x00',
       tx.id + '   ' + tx.date + '\n',
       '--------------------------------\n',
       ...tx.items.map(i => `${i.name.slice(0,20).padEnd(20)} ${formatRp(i.price * i.qty)}\n  ${i.qty} x ${formatRp(i.price)}\n`),
@@ -1040,14 +1047,18 @@ async function printReceipt() {
       '--------------------------------\n',
       '\x1b\x61\x01',
       'Terima kasih!\n\n\n\n',
-      '\x1d\x56\x00', // cut
+      '\x1d\x56\x00',
     ];
     const text = lines.join('');
     const encoder = new TextEncoder();
     const encoded = encoder.encode(text);
+    const serviceUUID = '000018f0-0000-1000-8000-00805f9b34fb';
+    const charUUID = btChar;
     const chunkSize = 512;
     for (let i = 0; i < encoded.length; i += chunkSize) {
-      await btChar.writeValue(encoded.slice(i, i + chunkSize));
+      const chunk = encoded.slice(i, i + chunkSize);
+      const dataView = new DataView(chunk.buffer);
+      await BleClient.write(btDevice.deviceId, serviceUUID, charUUID, dataView);
       await new Promise(r => setTimeout(r, 50));
     }
     showToast('🖨️ Struk berhasil dicetak!', 'success');
