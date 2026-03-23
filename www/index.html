@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ScanPOS – Mobile Point of Sale</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222636;
+    --border: #2e3347;
+    --accent: #4f8eff;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #e8eaf0;
+    --text2: #8b90a7;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ====== SCREENS ====== */
+  .screen { display: none; flex-direction: column; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* ====== HEADER ====== */
+  .header {
+    background: var(--surface);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-title { font-size: 18px; font-weight: 800; }
+  .header-sub { font-size: 12px; color: var(--text2); font-weight: 600; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 18px; transition: all .15s;
+  }
+  .icon-btn:active { transform: scale(0.92); background: var(--border); }
+
+  /* ====== BOTTOM NAV ====== */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex; z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-item {
+    flex: 1; padding: 10px 0;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    cursor: pointer; transition: all .15s; color: var(--text2);
+    font-size: 11px; font-weight: 700;
+  }
+  .nav-item .nav-icon { font-size: 22px; line-height: 1; }
+  .nav-item.active { color: var(--accent); }
+  .nav-item:active { opacity: 0.7; }
+
+  /* ====== SCAN SCREEN ====== */
+  #scan-screen { background: #000; position: relative; }
+
+  .camera-container {
+    position: relative;
+    width: 100%; aspect-ratio: 9/16;
+    max-height: calc(100vh - 200px);
+    overflow: hidden; background: #000;
+  }
+  #reader { width: 100%; height: 100%; }
+  #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+
+  .scan-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .scan-frame {
+    width: 220px; height: 140px;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
+  }
+  .scan-frame::before, .scan-frame::after {
+    content: ''; position: absolute;
+    width: 24px; height: 24px;
+  }
+  .scan-frame::before { top: -3px; left: -3px; border-top: 4px solid var(--accent); border-left: 4px solid var(--accent); border-radius: 6px 0 0 0; }
+  .scan-frame::after { bottom: -3px; right: -3px; border-bottom: 4px solid var(--accent); border-right: 4px solid var(--accent); border-radius: 0 0 6px 0; }
+  .scan-corner-tr { position: absolute; top: -3px; right: -3px; width: 24px; height: 24px; border-top: 4px solid var(--accent); border-right: 4px solid var(--accent); border-radius: 0 6px 0 0; }
+  .scan-corner-bl { position: absolute; bottom: -3px; left: -3px; width: 24px; height: 24px; border-bottom: 4px solid var(--accent); border-left: 4px solid var(--accent); border-radius: 0 0 0 6px; }
+  .scan-line {
+    position: absolute; left: 4px; right: 4px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scanline 2s ease-in-out infinite;
+    top: 50%;
+  }
+  @keyframes scanline { 0%,100% { top: 10%; opacity: 0; } 10%,90% { opacity: 1; } 50% { top: 90%; } }
+  .scan-label { color: #fff; font-size: 13px; font-weight: 700; margin-top: 20px; opacity: 0.8; letter-spacing: 0.5px; }
+
+  .scan-result-bar {
+    background: var(--surface); padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .scan-result-info { flex: 1; }
+  .scan-result-name { font-size: 14px; font-weight: 800; }
+  .scan-result-price { font-size: 13px; color: var(--accent); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .scan-result-bar.empty { justify-content: center; color: var(--text2); font-size: 13px; font-weight: 600; }
+
+  .cart-summary-bar {
+    background: var(--surface2); border-top: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cart-count-badge {
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 800;
+    padding: 2px 8px; border-radius: 99px;
+    display: inline-block; margin-left: 8px;
+  }
+
+  /* ====== CART SCREEN ====== */
+  .cart-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 100px; }
+
+  .cart-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    animation: slideIn .2s ease;
+  }
+  @keyframes slideIn { from { opacity:0; transform: translateX(-12px); } to { opacity:1; transform: none; } }
+
+  .cart-item-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: var(--surface2); display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .cart-item-info { flex: 1; }
+  .cart-item-name { font-size: 14px; font-weight: 800; }
+  .cart-item-price { font-size: 12px; color: var(--text2); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .cart-item-total { font-size: 14px; font-weight: 800; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  .qty-ctrl { display: flex; align-items: center; gap: 8px; }
+  .qty-btn {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; font-weight: 800; color: var(--text);
+    transition: all .12s;
+  }
+  .qty-btn:active { transform: scale(0.88); }
+  .qty-btn.minus:active { color: var(--red); border-color: var(--red); }
+  .qty-btn.plus:active { color: var(--green); border-color: var(--green); }
+  .qty-num { font-size: 15px; font-weight: 800; min-width: 24px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+
+  .cart-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text2); padding: 40px; text-align: center; }
+  .cart-empty .big-icon { font-size: 64px; opacity: 0.3; }
+  .cart-empty p { font-size: 15px; font-weight: 700; }
+
+  .cart-footer {
+    position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+  .total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .total-label { font-size: 14px; color: var(--text2); font-weight: 700; }
+  .total-value { font-size: 22px; font-weight: 900; font-family: 'JetBrains Mono', monospace; color: var(--green); }
+
+  /* ====== BUTTONS ====== */
+  .btn {
+    width: 100%; padding: 15px; border-radius: var(--radius);
+    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 800;
+    cursor: pointer; border: none; transition: all .15s; letter-spacing: 0.3px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-sm { padding: 10px 16px; font-size: 13px; width: auto; }
+
+  /* ====== PRODUCTS SCREEN ====== */
+  .search-bar {
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .search-input {
+    width: 100%; padding: 10px 16px 10px 40px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text); font-family: 'Nunito', sans-serif;
+    font-size: 14px; font-weight: 600; outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238b90a7' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: 12px center;
+  }
+  .search-input::placeholder { color: var(--text2); }
+
+  .products-grid { flex: 1; overflow-y: auto; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-bottom: 80px; }
+
+  .product-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+    cursor: pointer; transition: all .15s;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .product-card:active { transform: scale(0.96); border-color: var(--accent); }
+  .product-card .p-icon { font-size: 32px; }
+  .product-card .p-name { font-size: 13px; font-weight: 800; line-height: 1.3; }
+  .product-card .p-barcode { font-size: 10px; color: var(--text2); font-family: 'JetBrains Mono', monospace; }
+  .product-card .p-price { font-size: 14px; font-weight: 900; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+  .product-card .p-stock { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; display: inline-block; width: fit-content; }
+  .stock-ok { background: rgba(34,197,94,0.15); color: var(--green); }
+  .stock-low { background: rgba(245,158,11,0.15); color: var(--yellow); }
+
+  /* ====== FAB ====== */
+  .fab {
+    position: fixed; bottom: 80px; right: 20px;
+    width: 52px; height: 52px; border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; cursor: pointer; box-shadow: 0 8px 24px rgba(79,142,255,0.4);
+    transition: all .15s; z-index: 150; border: none;
+  }
+  .fab:active { transform: scale(0.9); }
+
+  /* ====== MODAL ====== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: flex-end; justify-content: center;
+    z-index: 500; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 24px 24px 0 0;
+    padding: 20px; width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto;
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
+  .modal-title { font-size: 18px; font-weight: 900; margin-bottom: 16px; }
+
+  /* ====== FORM ====== */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; font-weight: 800; color: var(--text2); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input {
+    width: 100%; padding: 12px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 600;
+    outline: none; transition: border-color .15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  /* ====== RECEIPT SCREEN ====== */
+  .receipt-container { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 100px; }
+  .receipt-paper {
+    background: #fff; color: #000;
+    border-radius: 12px; padding: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .receipt-paper .r-store { text-align: center; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .receipt-paper .r-sub { text-align: center; font-size: 11px; color: #555; margin-bottom: 12px; }
+  .receipt-paper .r-divider { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
+  .receipt-paper .r-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .receipt-paper .r-item-name { font-size: 12px; margin-bottom: 2px; }
+  .receipt-paper .r-item-detail { font-size: 11px; color: #555; display: flex; justify-content: space-between; }
+  .receipt-paper .r-total { font-size: 14px; font-weight: 700; }
+  .receipt-paper .r-thanks { text-align: center; font-size: 11px; color: #555; margin-top: 10px; }
+
+  .receipt-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .receipt-actions .btn { flex: 1; }
+
+  /* ====== HISTORY SCREEN ====== */
+  .history-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 80px; }
+  .history-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: all .12s;
+  }
+  .history-item:active { border-color: var(--accent); }
+  .history-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(79,142,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .history-info { flex: 1; }
+  .history-id { font-size: 12px; color: var(--text2); font-family: 'JetBrains Mono', monospace; }
+  .history-date { font-size: 13px; font-weight: 700; }
+  .history-items { font-size: 12px; color: var(--text2); }
+  .history-total { font-size: 15px; font-weight: 900; color: var(--green); font-family: 'JetBrains Mono', monospace; }
+
+  /* ====== TOAST ====== */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-80px);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 20px;
+    font-size: 13px; font-weight: 700; z-index: 999;
+    transition: transform .3s ease; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+
+  /* ====== BLUETOOTH STATUS ====== */
+  .bt-status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700;
+    padding: 4px 10px; border-radius: 99px;
+  }
+  .bt-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .bt-connected { background: rgba(34,197,94,0.15); color: var(--green); }
+  .bt-connected .bt-dot { background: var(--green); }
+  .bt-disconnected { background: rgba(239,68,68,0.15); color: var(--red); }
+  .bt-disconnected .bt-dot { background: var(--red); }
+
+  /* ====== SETTINGS SCREEN ====== */
+  .settings-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px; }
+  .settings-section-title { font-size: 11px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; padding: 0 4px; }
+  .settings-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .settings-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; cursor: pointer;
+    border-bottom: 1px solid var(--border); transition: background .12s;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row:active { background: var(--surface2); }
+  .settings-row-icon { font-size: 20px; width: 36px; text-align: center; }
+  .settings-row-info { flex: 1; }
+  .settings-row-label { font-size: 14px; font-weight: 700; }
+  .settings-row-sub { font-size: 12px; color: var(--text2); font-weight: 600; }
+  .settings-row-right { color: var(--text2); font-size: 12px; font-weight: 700; }
+
+  /* ====== NUMPAD ====== */
+  .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .numpad-btn {
+    padding: 16px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; font-family: 'Nunito', sans-serif; font-size: 18px;
+    font-weight: 800; color: var(--text); cursor: pointer; transition: all .1s;
+    text-align: center;
+  }
+  .numpad-btn:active { transform: scale(0.92); background: var(--border); }
+  .numpad-btn.action { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border-color: transparent; }
+  .numpad-btn.clear { color: var(--red); }
+  .payment-display {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; text-align: right; margin-bottom: 8px;
+  }
+  .payment-label { font-size: 11px; color: var(--text2); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .payment-amount { font-size: 28px; font-weight: 900; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+  .payment-change { font-size: 14px; color: var(--green); font-weight: 800; margin-top: 4px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<!-- ===================== TOAST ===================== -->
+<div class="toast" id="toast"></div>
+
+<!-- ===================== SCREEN: SCAN ===================== -->
+<div class="screen active" id="scan-screen">
+  <div class="header">
+    <div>
+      <div class="header-title">📷 Scan Barcode</div>
+      <div class="header-sub" id="scan-status">Arahkan kamera ke barcode</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="bt-status bt-disconnected" id="bt-badge">
+        <div class="bt-dot"></div>
+        <span id="bt-label">BT</span>
+      </div>
+      <div class="icon-btn" id="torch-btn" title="Lampu flash">🔦</div>
+    </div>
+  </div>
+
+  <div class="camera-container">
+    <div id="reader"></div>
+    <div class="scan-overlay">
+      <div class="scan-frame">
+        <div class="scan-corner-tr"></div>
+        <div class="scan-corner-bl"></div>
+        <div class="scan-line"></div>
+      </div>
+      <div class="scan-label">Scan barcode produk</div>
+    </div>
+  </div>
+
+  <div class="scan-result-bar empty" id="scan-result-bar">
+    <span>Belum ada produk di-scan</span>
+  </div>
+
+  <div class="cart-summary-bar">
+    <div>
+      <span style="font-size:13px;font-weight:700;color:var(--text2);">Keranjang</span>
+      <span class="cart-count-badge" id="cart-badge">0</span>
+    </div>
+    <div style="font-size:18px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--green);" id="scan-total">Rp 0</div>
+  </div>
+
+  <div style="padding:12px 16px;background:var(--surface2);border-top:1px solid var(--border);">
+    <button class="btn btn-primary" onclick="goToCart()">🛒 Lihat Keranjang & Checkout</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: CART ===================== -->
+<div class="screen" id="cart-screen">
+  <div class="header">
+    <div>
+      <div class="header-title">🛒 Keranjang</div>
+      <div class="header-sub" id="cart-header-sub">0 item</div>
+    </div>
+    <div class="icon-btn" onclick="clearCart()" title="Kosongkan">🗑️</div>
+  </div>
+
+  <div class="cart-list" id="cart-list">
+    <div class="cart-empty">
+      <div class="big-icon">🛒</div>
+      <p>Keranjang kosong</p>
+      <p style="font-size:13px;">Scan barcode produk dulu ya!</p>
+    </div>
+  </div>
+
+  <div class="cart-footer">
+    <div class="total-row">
+      <span class="total-label">TOTAL BAYAR</span>
+      <span class="total-value" id="cart-total">Rp 0</span>
+    </div>
+    <button class="btn btn-success" onclick="openPayment()">💳 Proses Pembayaran</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: PRODUCTS ===================== -->
+<div class="screen" id="products-screen">
+  <div class="header">
+    <div>
+      <div class="header-title">📦 Produk</div>
+      <div class="header-sub" id="product-count-label">0 produk</div>
+    </div>
+  </div>
+  <div class="search-bar">
+    <input class="search-input" type="text" placeholder="Cari nama / barcode..." id="search-input" oninput="filterProducts()">
+  </div>
+  <div class="products-grid" id="products-grid"></div>
+  <button class="fab" onclick="openAddProduct()">＋</button>
+</div>
+
+<!-- ===================== SCREEN: HISTORY ===================== -->
+<div class="screen" id="history-screen">
+  <div class="header">
+    <div>
+      <div class="header-title">📋 Riwayat</div>
+      <div class="header-sub">Transaksi tersimpan lokal</div>
+    </div>
+    <div class="icon-btn" onclick="confirmClearHistory()" title="Hapus semua">🗑️</div>
+  </div>
+  <div class="history-list" id="history-list">
+    <div class="cart-empty">
+      <div class="big-icon">📋</div>
+      <p>Belum ada transaksi</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: SETTINGS ===================== -->
+<div class="screen" id="settings-screen">
+  <div class="header">
+    <div>
+      <div class="header-title">⚙️ Pengaturan</div>
+      <div class="header-sub">Toko & Printer</div>
+    </div>
+  </div>
+  <div class="settings-list">
+    <div class="settings-section-title">Informasi Toko</div>
+    <div class="settings-card">
+      <div class="settings-row" onclick="editStoreName()">
+        <div class="settings-row-icon">🏪</div>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Nama Toko</div>
+          <div class="settings-row-sub" id="setting-store-name">Toko Saya</div>
+        </div>
+        <div class="settings-row-right">✏️</div>
+      </div>
+      <div class="settings-row" onclick="editStoreAddress()">
+        <div class="settings-row-icon">📍</div>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Alamat</div>
+          <div class="settings-row-sub" id="setting-store-address">-</div>
+        </div>
+        <div class="settings-row-right">✏️</div>
+      </div>
+      <div class="settings-row" onclick="editStorePhone()">
+        <div class="settings-row-icon">📞</div>
+        <div class="settings-row-info">
+          <div class="settings-row-label">No. Telepon</div>
+          <div class="settings-row-sub" id="setting-store-phone">-</div>
+        </div>
+        <div class="settings-row-right">✏️</div>
+      </div>
+    </div>
+
+    <div class="settings-section-title">Printer Thermal</div>
+    <div class="settings-card">
+      <div class="settings-row" onclick="connectBluetooth()">
+        <div class="settings-row-icon">🖨️</div>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Printer Bluetooth</div>
+          <div class="settings-row-sub" id="setting-printer-name">Belum terhubung</div>
+        </div>
+        <div class="settings-row-right" id="setting-bt-status">⛔</div>
+      </div>
+      <div class="settings-row" onclick="disconnectBluetooth()">
+        <div class="settings-row-icon">🔌</div>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Putus Koneksi</div>
+          <div class="settings-row-sub">Lepas printer Bluetooth</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section-title">Data</div>
+    <div class="settings-card">
+      <div class="settings-row" onclick="exportData()">
+        <div class="settings-row-icon">📤</div>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Export Data</div>
+          <div class="settings-row-sub">Download produk & riwayat (JSON)</div>
+        </div>
+      </div>
+      <div class="settings-row" onclick="document.getElementById('import-file').click()">
+        <div class="settings-row-icon">📥</div>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Import Data</div>
+          <div class="settings-row-sub">Muat data dari file JSON</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;color:var(--text2);font-size:12px;font-weight:700;padding:8px;">
+      ScanPOS v1.0 – Data tersimpan lokal di perangkat
+    </div>
+  </div>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+</div>
+
+<!-- ===================== BOTTOM NAV ===================== -->
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-scan" onclick="showScreen('scan')">
+    <div class="nav-icon">📷</div>
+    <span>Scan</span>
+  </div>
+  <div class="nav-item" id="nav-cart" onclick="showScreen('cart')">
+    <div class="nav-icon">🛒</div>
+    <span>Keranjang</span>
+  </div>
+  <div class="nav-item" id="nav-products" onclick="showScreen('products')">
+    <div class="nav-icon">📦</div>
+    <span>Produk</span>
+  </div>
+  <div class="nav-item" id="nav-history" onclick="showScreen('history')">
+    <div class="nav-icon">📋</div>
+    <span>Riwayat</span>
+  </div>
+  <div class="nav-item" id="nav-settings" onclick="showScreen('settings')">
+    <div class="nav-icon">⚙️</div>
+    <span>Pengaturan</span>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ADD PRODUCT ===================== -->
+<div class="modal-overlay" id="modal-product">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-product-title">➕ Tambah Produk</div>
+    <div class="form-group">
+      <label class="form-label">Barcode</label>
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" id="fp-barcode" placeholder="Scan atau ketik barcode..." style="flex:1;">
+        <button class="btn btn-outline btn-sm" onclick="scanForProduct()">📷</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nama Produk *</label>
+      <input class="form-input" id="fp-name" placeholder="Contoh: Aqua 600ml">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Harga Jual (Rp) *</label>
+      <input class="form-input" id="fp-price" type="number" placeholder="5000">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Stok</label>
+      <input class="form-input" id="fp-stock" type="number" placeholder="100">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ikon (emoji)</label>
+      <input class="form-input" id="fp-icon" placeholder="🛒" maxlength="4">
+    </div>
+    <input type="hidden" id="fp-edit-id">
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-product')" style="flex:1;">Batal</button>
+      <button class="btn btn-primary" onclick="saveProduct()" style="flex:1;">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: PAYMENT ===================== -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💳 Pembayaran</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+      <span style="color:var(--text2);font-weight:700;font-size:13px;">Total Belanja</span>
+      <span style="font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--green);font-size:16px;" id="pay-total">Rp 0</span>
+    </div>
+    <div class="payment-display">
+      <div class="payment-label">Uang Diterima</div>
+      <div class="payment-amount" id="pay-input">0</div>
+      <div class="payment-change" id="pay-change"></div>
+    </div>
+    <div class="numpad">
+      <button class="numpad-btn" onclick="numInput('1')">1</button>
+      <button class="numpad-btn" onclick="numInput('2')">2</button>
+      <button class="numpad-btn" onclick="numInput('3')">3</button>
+      <button class="numpad-btn" onclick="numInput('4')">4</button>
+      <button class="numpad-btn" onclick="numInput('5')">5</button>
+      <button class="numpad-btn" onclick="numInput('6')">6</button>
+      <button class="numpad-btn" onclick="numInput('7')">7</button>
+      <button class="numpad-btn" onclick="numInput('8')">8</button>
+      <button class="numpad-btn" onclick="numInput('9')">9</button>
+      <button class="numpad-btn clear" onclick="numInput('clear')">⌫</button>
+      <button class="numpad-btn" onclick="numInput('0')">0</button>
+      <button class="numpad-btn" onclick="numInput('000')">000</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-payment')" style="flex:1;">Batal</button>
+      <button class="btn btn-success" onclick="processPayment()" style="flex:1;" id="pay-confirm-btn">✅ Bayar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: RECEIPT ===================== -->
+<div class="modal-overlay" id="modal-receipt">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🧾 Struk Pembayaran</div>
+    <div class="receipt-container" style="padding:0;">
+      <div class="receipt-paper" id="receipt-content"></div>
+    </div>
+    <div class="receipt-actions" style="margin-top:12px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-receipt');newTransaction()">🔄 Transaksi Baru</button>
+      <button class="btn btn-primary" onclick="printReceipt()" id="print-btn">🖨️ Print Struk</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: HISTORY DETAIL ===================== -->
+<div class="modal-overlay" id="modal-history-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🧾 Detail Transaksi</div>
+    <div class="receipt-paper" id="history-receipt-content"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-history-detail')" style="flex:1;">Tutup</button>
+      <button class="btn btn-primary" onclick="reprintReceipt()" style="flex:1;">🖨️ Print Ulang</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE & STORAGE
+// ============================================================
+let products = JSON.parse(localStorage.getItem('pos_products') || '[]');
+let cart = [];
+let transactions = JSON.parse(localStorage.getItem('pos_transactions') || '[]');
+let settings = JSON.parse(localStorage.getItem('pos_settings') || '{"storeName":"Toko Saya","storeAddress":"","storePhone":""}');
+let btDevice = null, btChar = null;
+let torchOn = false;
+let paymentInput = '';
+let lastTransaction = null;
+let lastHistoryTx = null;
+let html5QrCode = null;
+let currentScreen = 'scan';
+let scannerRunning = false;
+
+// Seed products if empty
+if (products.length === 0) {
+  products = [
+    { id: uid(), barcode: '8991234560001', name: '50-50 Biscuit', price: 5000, stock: 50, icon: '🍪' },
+    { id: uid(), barcode: '8991234560002', name: 'Bourbon Biscuit', price: 10000, stock: 30, icon: '🍫' },
+    { id: uid(), barcode: '8991234560003', name: 'Dairy Milk', price: 40000, stock: 20, icon: '🍬' },
+    { id: uid(), barcode: '8991234560004', name: 'Gobbles Cake', price: 15000, stock: 25, icon: '🎂' },
+    { id: uid(), barcode: '8991234560005', name: 'Aqua 600ml', price: 4000, stock: 100, icon: '💧' },
+    { id: uid(), barcode: '8991234560006', name: 'Indomie Goreng', price: 3500, stock: 200, icon: '🍜' },
+  ];
+  saveProducts();
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function saveProducts() { localStorage.setItem('pos_products', JSON.stringify(products)); }
+function saveTransactions() { localStorage.setItem('pos_transactions', JSON.stringify(transactions)); }
+function saveSettings() { localStorage.setItem('pos_settings', JSON.stringify(settings)); }
+function formatRp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(name + '-screen').classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  currentScreen = name;
+
+  if (name === 'scan') { startScanner(); }
+  else { stopScanner(); }
+  if (name === 'products') renderProducts();
+  if (name === 'cart') renderCart();
+  if (name === 'history') renderHistory();
+  if (name === 'settings') renderSettings();
+}
+
+function goToCart() { showScreen('cart'); }
+
+// ============================================================
+// SCANNER
+// ============================================================
+function startScanner() {
+  if (scannerRunning) return;
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
+  }
+  const config = { fps: 15, qrbox: { width: 250, height: 120 }, aspectRatio: 1.7, rememberLastUsedCamera: true };
+  html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {})
+    .then(() => { scannerRunning = true; document.getElementById('scan-status').textContent = 'Kamera aktif – scan barcode'; })
+    .catch(err => { document.getElementById('scan-status').textContent = 'Kamera tidak bisa dibuka'; showToast('Izinkan akses kamera', 'error'); });
+}
+
+function stopScanner() {
+  if (html5QrCode && scannerRunning) {
+    html5QrCode.stop().then(() => { scannerRunning = false; }).catch(() => {});
+  }
+}
+
+let lastScan = '';
+let lastScanTime = 0;
+function onScanSuccess(decodedText) {
+  const now = Date.now();
+  if (decodedText === lastScan && now - lastScanTime < 2000) return;
+  lastScan = decodedText; lastScanTime = now;
+  handleBarcode(decodedText);
+}
+
+function handleBarcode(code) {
+  const product = products.find(p => p.barcode === code);
+  const bar = document.getElementById('scan-result-bar');
+  if (product) {
+    addToCart(product);
+    bar.classList.remove('empty');
+    bar.innerHTML = `
+      <div style="font-size:28px;">${product.icon || '📦'}</div>
+      <div class="scan-result-info">
+        <div class="scan-result-name">${product.name}</div>
+        <div class="scan-result-price">${formatRp(product.price)}</div>
+      </div>
+      <div style="background:var(--green);color:#fff;padding:6px 14px;border-radius:10px;font-size:13px;font-weight:800;">+1</div>`;
+    showToast('✅ ' + product.name + ' ditambahkan', 'success');
+    if (navigator.vibrate) navigator.vibrate(60);
+  } else {
+    bar.classList.remove('empty');
+    bar.innerHTML = `
+      <div style="font-size:20px;color:var(--yellow);">⚠️</div>
+      <div class="scan-result-info">
+        <div style="font-size:13px;font-weight:800;color:var(--yellow);">Produk tidak ditemukan</div>
+        <div style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;">${code}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="openAddProductWithBarcode('${code}')">+ Tambah</button>`;
+    showToast('⚠️ Barcode tidak ada di database', 'error');
+  }
+  updateCartBadge();
+}
+
+document.getElementById('torch-btn').onclick = async () => {
+  try {
+    const track = html5QrCode?.getRunningTrackCameraCapabilities?.()?.torchFeature?.();
+    if (track && track.isSupported()) {
+      torchOn = !torchOn;
+      await track.apply(torchOn);
+      document.getElementById('torch-btn').textContent = torchOn ? '🔆' : '🔦';
+    } else { showToast('Flash tidak didukung', 'error'); }
+  } catch { showToast('Flash tidak tersedia', 'error'); }
+};
+
+// ============================================================
+// CART
+// ============================================================
+function addToCart(product) {
+  const existing = cart.find(c => c.id === product.id);
+  if (existing) existing.qty++;
+  else cart.push({ ...product, qty: 1 });
+  updateCartBadge();
+}
+
+function updateCartBadge() {
+  const total = cart.reduce((a, c) => a + c.qty, 0);
+  const sum = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  document.getElementById('cart-badge').textContent = total;
+  document.getElementById('scan-total').textContent = formatRp(sum);
+}
+
+function renderCart() {
+  const el = document.getElementById('cart-list');
+  const sub = document.getElementById('cart-header-sub');
+  if (cart.length === 0) {
+    el.innerHTML = `<div class="cart-empty"><div class="big-icon">🛒</div><p>Keranjang kosong</p><p style="font-size:13px;">Scan barcode produk dulu ya!</p></div>`;
+    sub.textContent = '0 item';
+    document.getElementById('cart-total').textContent = formatRp(0);
+    return;
+  }
+  const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const items = cart.reduce((a, c) => a + c.qty, 0);
+  sub.textContent = `${items} item`;
+  document.getElementById('cart-total').textContent = formatRp(total);
+  el.innerHTML = cart.map((item, i) => `
+    <div class="cart-item">
+      <div class="cart-item-icon">${item.icon || '📦'}</div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">${formatRp(item.price)} / pcs</div>
+      </div>
+      <div>
+        <div class="cart-item-total">${formatRp(item.price * item.qty)}</div>
+        <div class="qty-ctrl" style="justify-content:flex-end;margin-top:6px;">
+          <button class="qty-btn minus" onclick="changeQty(${i}, -1)">−</button>
+          <span class="qty-num">${item.qty}</span>
+          <button class="qty-btn plus" onclick="changeQty(${i}, 1)">+</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function changeQty(index, delta) {
+  cart[index].qty += delta;
+  if (cart[index].qty <= 0) cart.splice(index, 1);
+  updateCartBadge();
+  renderCart();
+}
+
+function clearCart() {
+  if (cart.length === 0) return;
+  if (!confirm('Kosongkan keranjang?')) return;
+  cart = [];
+  updateCartBadge();
+  renderCart();
+  showToast('Keranjang dikosongkan');
+}
+
+// ============================================================
+// PAYMENT
+// ============================================================
+function openPayment() {
+  if (cart.length === 0) { showToast('Keranjang kosong!', 'error'); return; }
+  paymentInput = '';
+  const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  document.getElementById('pay-total').textContent = formatRp(total);
+  document.getElementById('pay-input').textContent = '0';
+  document.getElementById('pay-change').textContent = '';
+  openModal('modal-payment');
+}
+
+function numInput(val) {
+  const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  if (val === 'clear') { paymentInput = paymentInput.slice(0, -1); }
+  else if (val === '000') { paymentInput += '000'; }
+  else { paymentInput += val; }
+  if (paymentInput.length > 12) paymentInput = paymentInput.slice(0, 12);
+  const amount = parseInt(paymentInput || '0');
+  document.getElementById('pay-input').textContent = amount.toLocaleString('id-ID');
+  const change = amount - total;
+  if (change >= 0) {
+    document.getElementById('pay-change').textContent = 'Kembalian: ' + formatRp(change);
+    document.getElementById('pay-confirm-btn').disabled = false;
+  } else {
+    document.getElementById('pay-change').textContent = 'Kurang: ' + formatRp(Math.abs(change));
+    document.getElementById('pay-confirm-btn').disabled = true;
+  }
+}
+
+function processPayment() {
+  const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const paid = parseInt(paymentInput || '0');
+  if (paid < total) { showToast('Uang tidak cukup!', 'error'); return; }
+  const change = paid - total;
+  const tx = {
+    id: 'TRX' + Date.now(),
+    date: new Date().toLocaleString('id-ID'),
+    items: cart.map(c => ({ ...c })),
+    total, paid, change
+  };
+  transactions.unshift(tx);
+  saveTransactions();
+  // Reduce stock
+  cart.forEach(ci => {
+    const p = products.find(p => p.id === ci.id);
+    if (p) p.stock = Math.max(0, p.stock - ci.qty);
+  });
+  saveProducts();
+  lastTransaction = tx;
+  closeModal('modal-payment');
+  showReceipt(tx);
+}
+
+// ============================================================
+// RECEIPT
+// ============================================================
+function buildReceiptHTML(tx) {
+  const storeInfo = JSON.parse(localStorage.getItem('pos_settings') || '{"storeName":"Toko Saya","storeAddress":"","storePhone":""}');
+  const itemsHTML = tx.items.map(i => `
+    <div class="r-item-name">${i.icon || ''} ${i.name}</div>
+    <div class="r-item-detail"><span>${i.qty} x ${formatRp(i.price)}</span><span>${formatRp(i.price * i.qty)}</span></div>
+  `).join('');
+  return `
+    <div class="r-store">${storeInfo.storeName || 'Toko Saya'}</div>
+    <div class="r-sub">${storeInfo.storeAddress || ''}</div>
+    ${storeInfo.storePhone ? `<div class="r-sub">Telp: ${storeInfo.storePhone}</div>` : ''}
+    <hr class="r-divider">
+    <div class="r-row"><span>${tx.date}</span><span>${tx.id}</span></div>
+    <hr class="r-divider">
+    ${itemsHTML}
+    <hr class="r-divider">
+    <div class="r-row r-total"><span>TOTAL</span><span>${formatRp(tx.total)}</span></div>
+    <div class="r-row"><span>Bayar</span><span>${formatRp(tx.paid)}</span></div>
+    <div class="r-row"><span>Kembalian</span><span>${formatRp(tx.change)}</span></div>
+    <hr class="r-divider">
+    <div class="r-thanks">Terima kasih sudah berbelanja! 😊</div>
+  `;
+}
+
+function showReceipt(tx) {
+  document.getElementById('receipt-content').innerHTML = buildReceiptHTML(tx);
+  closeModal('modal-payment');
+  openModal('modal-receipt');
+}
+
+function newTransaction() {
+  cart = [];
+  updateCartBadge();
+  showScreen('scan');
+  showToast('Siap transaksi baru ✅', 'success');
+}
+
+// ============================================================
+// BLUETOOTH PRINT
+// ============================================================
+async function connectBluetooth() {
+  if (!navigator.bluetooth) { showToast('Bluetooth tidak didukung browser ini', 'error'); return; }
+  try {
+    showToast('Mencari printer...');
+    btDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
+      optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+    });
+    const server = await btDevice.gatt.connect();
+    const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+    btChar = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+    setBtConnected(true, btDevice.name);
+    showToast('✅ Printer terhubung: ' + btDevice.name, 'success');
+    btDevice.addEventListener('gattserverdisconnected', () => { setBtConnected(false); showToast('Printer terputus', 'error'); });
+  } catch (e) { showToast('Gagal connect: ' + (e.message || e), 'error'); }
+}
+
+function setBtConnected(connected, name = '') {
+  const badge = document.getElementById('bt-badge');
+  const label = document.getElementById('bt-label');
+  if (connected) {
+    badge.className = 'bt-status bt-connected';
+    label.textContent = name ? name.slice(0, 8) : 'Printer';
+    document.getElementById('setting-printer-name').textContent = name || 'Terhubung';
+    document.getElementById('setting-bt-status').textContent = '✅';
+  } else {
+    badge.className = 'bt-status bt-disconnected';
+    label.textContent = 'BT';
+    document.getElementById('setting-printer-name').textContent = 'Belum terhubung';
+    document.getElementById('setting-bt-status').textContent = '⛔';
+    btDevice = null; btChar = null;
+  }
+}
+
+function disconnectBluetooth() {
+  if (btDevice && btDevice.gatt.connected) { btDevice.gatt.disconnect(); }
+  setBtConnected(false);
+  showToast('Printer diputuskan');
+}
+
+async function printReceipt() {
+  if (!btChar) { showToast('Printer belum terhubung! Hubungkan dulu di Pengaturan.', 'error'); return; }
+  try {
+    const tx = lastTransaction;
+    const storeInfo = settings;
+    const lines = [
+      '\x1b\x61\x01', // center
+      storeInfo.storeName + '\n',
+      (storeInfo.storeAddress || '') + '\n',
+      (storeInfo.storePhone ? 'Telp: ' + storeInfo.storePhone + '\n' : ''),
+      '--------------------------------\n',
+      '\x1b\x61\x00', // left
+      tx.id + '   ' + tx.date + '\n',
+      '--------------------------------\n',
+      ...tx.items.map(i => `${i.name.slice(0,20).padEnd(20)} ${formatRp(i.price * i.qty)}\n  ${i.qty} x ${formatRp(i.price)}\n`),
+      '--------------------------------\n',
+      `TOTAL           ${formatRp(tx.total)}\n`,
+      `Bayar           ${formatRp(tx.paid)}\n`,
+      `Kembalian       ${formatRp(tx.change)}\n`,
+      '--------------------------------\n',
+      '\x1b\x61\x01',
+      'Terima kasih!\n\n\n\n',
+      '\x1d\x56\x00', // cut
+    ];
+    const text = lines.join('');
+    const encoder = new TextEncoder();
+    const encoded = encoder.encode(text);
+    const chunkSize = 512;
+    for (let i = 0; i < encoded.length; i += chunkSize) {
+      await btChar.writeValue(encoded.slice(i, i + chunkSize));
+      await new Promise(r => setTimeout(r, 50));
+    }
+    showToast('🖨️ Struk berhasil dicetak!', 'success');
+  } catch (e) { showToast('Gagal print: ' + (e.message || e), 'error'); }
+}
+
+function reprintReceipt() {
+  if (lastHistoryTx) { lastTransaction = lastHistoryTx; printReceipt(); }
+}
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+function renderProducts(filter = '') {
+  const grid = document.getElementById('products-grid');
+  const f = filter.toLowerCase();
+  const filtered = products.filter(p => !f || p.name.toLowerCase().includes(f) || p.barcode.includes(f));
+  document.getElementById('product-count-label').textContent = products.length + ' produk';
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="cart-empty" style="grid-column:1/-1"><div class="big-icon">📦</div><p>Tidak ditemukan</p></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(p => `
+    <div class="product-card" onclick="openEditProduct('${p.id}')">
+      <div class="p-icon">${p.icon || '📦'}</div>
+      <div class="p-name">${p.name}</div>
+      <div class="p-barcode">${p.barcode || '-'}</div>
+      <div class="p-price">${formatRp(p.price)}</div>
+      <div class="p-stock ${p.stock > 10 ? 'stock-ok' : 'stock-low'}">Stok: ${p.stock}</div>
+    </div>`).join('');
+}
+
+function filterProducts() {
+  renderProducts(document.getElementById('search-input').value);
+}
+
+function openAddProduct() {
+  document.getElementById('modal-product-title').textContent = '➕ Tambah Produk';
+  document.getElementById('fp-barcode').value = '';
+  document.getElementById('fp-name').value = '';
+  document.getElementById('fp-price').value = '';
+  document.getElementById('fp-stock').value = '';
+  document.getElementById('fp-icon').value = '📦';
+  document.getElementById('fp-edit-id').value = '';
+  openModal('modal-product');
+}
+
+function openAddProductWithBarcode(code) {
+  openAddProduct();
+  document.getElementById('fp-barcode').value = code;
+}
+
+function openEditProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-product-title').textContent = '✏️ Edit Produk';
+  document.getElementById('fp-barcode').value = p.barcode;
+  document.getElementById('fp-name').value = p.name;
+  document.getElementById('fp-price').value = p.price;
+  document.getElementById('fp-stock').value = p.stock;
+  document.getElementById('fp-icon').value = p.icon || '📦';
+  document.getElementById('fp-edit-id').value = id;
+  openModal('modal-product');
+}
+
+function saveProduct() {
+  const name = document.getElementById('fp-name').value.trim();
+  const price = parseInt(document.getElementById('fp-price').value);
+  if (!name || isNaN(price)) { showToast('Nama & harga wajib diisi!', 'error'); return; }
+  const editId = document.getElementById('fp-edit-id').value;
+  const data = {
+    barcode: document.getElementById('fp-barcode').value.trim(),
+    name, price,
+    stock: parseInt(document.getElementById('fp-stock').value) || 0,
+    icon: document.getElementById('fp-icon').value.trim() || '📦',
+  };
+  if (editId) {
+    const idx = products.findIndex(p => p.id === editId);
+    if (idx !== -1) { products[idx] = { ...products[idx], ...data }; }
+  } else {
+    products.push({ id: uid(), ...data });
+  }
+  saveProducts();
+  renderProducts();
+  closeModal('modal-product');
+  showToast('✅ Produk disimpan', 'success');
+}
+
+function scanForProduct() {
+  closeModal('modal-product');
+  showScreen('scan');
+  showToast('Scan barcode produk, lalu tambah ulang');
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (transactions.length === 0) {
+    el.innerHTML = `<div class="cart-empty"><div class="big-icon">📋</div><p>Belum ada transaksi</p></div>`;
+    return;
+  }
+  el.innerHTML = transactions.map(tx => `
+    <div class="history-item" onclick="showHistoryDetail('${tx.id}')">
+      <div class="history-icon">🧾</div>
+      <div class="history-info">
+        <div class="history-id">${tx.id}</div>
+        <div class="history-date">${tx.date}</div>
+        <div class="history-items">${tx.items.length} jenis item · ${tx.items.reduce((a,i)=>a+i.qty,0)} pcs</div>
+      </div>
+      <div class="history-total">${formatRp(tx.total)}</div>
+    </div>`).join('');
+}
+
+function showHistoryDetail(id) {
+  const tx = transactions.find(t => t.id === id);
+  if (!tx) return;
+  lastHistoryTx = tx;
+  document.getElementById('history-receipt-content').innerHTML = buildReceiptHTML(tx);
+  openModal('modal-history-detail');
+}
+
+function confirmClearHistory() {
+  if (transactions.length === 0) return;
+  if (!confirm('Hapus semua riwayat transaksi?')) return;
+  transactions = [];
+  saveTransactions();
+  renderHistory();
+  showToast('Riwayat dihapus');
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function renderSettings() {
+  document.getElementById('setting-store-name').textContent = settings.storeName || 'Toko Saya';
+  document.getElementById('setting-store-address').textContent = settings.storeAddress || '-';
+  document.getElementById('setting-store-phone').textContent = settings.storePhone || '-';
+}
+
+function editStoreName() {
+  const val = prompt('Nama toko:', settings.storeName);
+  if (val !== null) { settings.storeName = val; saveSettings(); renderSettings(); }
+}
+function editStoreAddress() {
+  const val = prompt('Alamat toko:', settings.storeAddress);
+  if (val !== null) { settings.storeAddress = val; saveSettings(); renderSettings(); }
+}
+function editStorePhone() {
+  const val = prompt('No. telepon:', settings.storePhone);
+  if (val !== null) { settings.storePhone = val; saveSettings(); renderSettings(); }
+}
+
+function exportData() {
+  const data = { products, transactions, settings };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'scanpos-data-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  showToast('✅ Data diekspor', 'success');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.products) { products = data.products; saveProducts(); }
+      if (data.transactions) { transactions = data.transactions; saveTransactions(); }
+      if (data.settings) { settings = data.settings; saveSettings(); renderSettings(); }
+      showToast('✅ Data diimpor', 'success');
+      renderProducts();
+    } catch { showToast('File tidak valid!', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ============================================================
+// MODAL & TOAST
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+renderProducts();
+updateCartBadge();
+startScanner();
+renderSettings();
+</script>
+</body>
+</html>
