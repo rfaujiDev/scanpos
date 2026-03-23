@@ -989,10 +989,9 @@ async function connectBluetooth() {
       scanMode: 2,
       namePrefix: '',
     });
-    showToast('DEBUG: ' + JSON.stringify(result));
     const deviceId = result.deviceId || result.address || result.id || Object.values(result)[0];
+    alert('DEBUG result: ' + JSON.stringify(result));
     if (!deviceId) { showToast('Tidak ada printer dipilih', 'error'); return; }
-    showToast('Menghubungkan ke ' + (result.name || deviceId) + '...');
     await BleClient.connect({ deviceId: deviceId });
     btDevice = { deviceId: deviceId, name: result.name || deviceId };
     btChar = '00002af1-0000-1000-8000-00805f9b34fb';
