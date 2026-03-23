@@ -986,13 +986,16 @@ async function connectBluetooth() {
     if (!BleClient) { showToast('Plugin BLE tidak tersedia', 'error'); return; }
     await BleClient.initialize();
     const result = await BleClient.requestDevice({
-      services: ['000018f0-0000-1000-8000-00805f9b34fb'],
+      scanMode: 2,
+      namePrefix: '',
     });
+    if (!result || !result.deviceId) { showToast('Tidak ada printer dipilih', 'error'); return; }
+    showToast('Menghubungkan ke ' + (result.name || result.deviceId) + '...');
     await BleClient.connect({ deviceId: result.deviceId });
     btDevice = result;
     btChar = '00002af1-0000-1000-8000-00805f9b34fb';
-    setBtConnected(true, result.name);
-    showToast('✅ Printer terhubung: ' + result.name, 'success');
+    setBtConnected(true, result.name || result.deviceId);
+    showToast('✅ Printer terhubung: ' + (result.name || result.deviceId), 'success');
   } catch (e) { showToast('Gagal connect: ' + (e.message || e), 'error'); }
 }
 
