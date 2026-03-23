@@ -1062,9 +1062,14 @@ async function printReceipt() {
     const chunkSize = 512;
     for (let i = 0; i < encoded.length; i += chunkSize) {
       const chunk = encoded.slice(i, i + chunkSize);
-      const dataView = new DataView(chunk.buffer);
-      await BleClient.write({ deviceId: deviceId, service: serviceUUID, characteristic: charUUID, value: dataView });
-      await new Promise(r => setTimeout(r, 50));
+      const dataView = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+      await BleClient.write({
+        deviceId: deviceId,
+        service: serviceUUID,
+        characteristic: charUUID,
+        value: dataView
+      });
+      await new Promise(r => setTimeout(r, 100));
     }
     showToast('🖨️ Struk berhasil dicetak!', 'success');
   } catch (e) { showToast('Gagal print: ' + (e.message || e), 'error'); }
