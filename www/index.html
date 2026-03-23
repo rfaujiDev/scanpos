@@ -990,7 +990,6 @@ async function connectBluetooth() {
       namePrefix: '',
     });
     const deviceId = result.deviceId || result.address || result.id || Object.values(result)[0];
-    alert('DEBUG result: ' + JSON.stringify(result));
     if (!deviceId) { showToast('Tidak ada printer dipilih', 'error'); return; }
     await BleClient.connect({ deviceId: deviceId });
     btDevice = { deviceId: deviceId, name: result.name || deviceId };
@@ -1033,7 +1032,7 @@ async function printReceipt() {
   if (!btChar || !btDevice) { showToast('Printer belum terhubung! Hubungkan dulu di Pengaturan.', 'error'); return; }
   try {
     const BleClient = Capacitor.Plugins.BluetoothLe;
-    const deviceId = btDevice.deviceId || btDevice;
+    const deviceId = btDevice.deviceId;
     const tx = lastTransaction;
     const storeInfo = settings;
     const lines = [
@@ -1064,7 +1063,7 @@ async function printReceipt() {
     for (let i = 0; i < encoded.length; i += chunkSize) {
       const chunk = encoded.slice(i, i + chunkSize);
       const dataView = new DataView(chunk.buffer);
-      await BleClient.write(deviceId, serviceUUID, charUUID, dataView);
+      await BleClient.write({ deviceId: deviceId, service: serviceUUID, characteristic: charUUID, value: dataView });
       await new Promise(r => setTimeout(r, 50));
     }
     showToast('🖨️ Struk berhasil dicetak!', 'success');
