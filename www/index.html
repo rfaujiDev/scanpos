@@ -917,6 +917,19 @@ function setRange(type) {
   if (type==='today') {
     document.getElementById('date-from').value = todayStr;
     document.getElementById('date-to').value = todayStr;
+    setTimeout(()=>{
+      try { transactions = JSON.parse(localStorage.getItem('pos_transactions')||'[]'); } catch(e){transactions=[];}
+      if (transactions.length > 0) {
+        const tx = transactions[0];
+        const dt = tx.dateISO ? new Date(tx.dateISO) : parseTxDate(tx.date);
+        alert('Total transaksi: '+transactions.length+
+          '\nContoh date: '+tx.date+
+          '\ndateISO: '+(tx.dateISO||'KOSONG')+
+          '\nParsed: '+dt+
+          '\nFrom: '+new Date(todayStr+'T00:00:00')+
+          '\nMatch: '+(dt >= new Date(todayStr+'T00:00:00') && dt <= new Date(todayStr+'T23:59:59')));
+      }
+    }, 500);
   } else if (type==='week') {
     const w = new Date(today); w.setDate(today.getDate()-6);
     document.getElementById('date-from').value = w.toISOString().slice(0,10);
