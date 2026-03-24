@@ -1466,9 +1466,9 @@ function renderDashboard() {
       const raw = tx.date;
       if (raw.includes('/')) {
         const [datePart, timePart] = raw.split(', ');
-        const [day, month, year] = datePart.split('/');
+        const parts = datePart.split('/'); const day = parts[0].padStart(2,'0'); const month = parts[1].padStart(2,'0'); const year = parts[2];
         const timeFixed = timePart ? timePart.replace(/./g, ':') : '00:00:00';
-        txDate = new Date(`${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${timeFixed}`);
+        txDate = new Date(`${year}-${month}-${day}T${timeFixed}`);
       } else {
         txDate = new Date(raw);
       }
