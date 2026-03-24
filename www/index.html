@@ -1047,31 +1047,18 @@ function editSetting(key, label) {
   const val = prompt(label+':', settings[key]||'');
   if (val!==null) { settings[key]=val; saveSettings(); renderSettings(); }
 }
-async function exportData() {
-  try {
-    const data = JSON.stringify({products,transactions,settings},null,2);
-    const fname = 'scanpos-backup-'+new Date().toISOString().slice(0,10)+'.json';
-    const { Filesystem, Directory, Encoding } = Capacitor.Plugins;
-    await Filesystem.writeFile({
-      path: fname,
-      data: data,
-      directory: 'DOCUMENTS',
-      encoding: 'utf8',
-      recursive: true
-    });
-    showToast('✅ Tersimpan: Download/'+fname,'success');
-    alert('File berhasil disimpan!\n\nNama file: '+fname+'\nLokasi: Folder Documents/Download HP kamu');
-  } catch(e) {
-    // Fallback blob
-    const data = JSON.stringify({products,transactions,settings},null,2);
-    const blob = new Blob([data],{type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'scanpos-backup-'+new Date().toISOString().slice(0,10)+'.json';
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },1000);
-    showToast('✅ Data diekspor','success');
-  }
+function exportData() {
+  const data = JSON.stringify({products,transactions,settings},null,2);
+  const blob = new Blob([data],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'scanpos-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  showToast('✅ Tersimpan di folder Download','success');
 }
 function importData(e) {
   const file = e.target.files[0]; if (!file) return;
@@ -1242,30 +1229,18 @@ function doExportExcel() {
   }
 
   const fname = 'ScanPOS-Laporan-'+fromStr+'-sd-'+toStr+'.xlsx';
-  try {
-    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
-    const { Filesystem } = Capacitor.Plugins;
-    await Filesystem.writeFile({
-      path: fname,
-      data: wbout,
-      directory: 'DOCUMENTS',
-      recursive: true
-    });
-    closeModal('modal-export');
-    showToast('✅ Excel disimpan!','success');
-    alert('File Excel berhasil disimpan!\n\nNama file: '+fname+'\nLokasi: Folder Documents HP kamu');
-  } catch(e) {
-    // Fallback blob
-    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    const blob = new Blob([wbout],{type:'application/octet-stream'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = fname;
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },1000);
-    closeModal('modal-export');
-    showToast('✅ Excel diekspor','success');
-  }
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  const blob = new Blob([wbout], {type:'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fname;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  closeModal('modal-export');
+  showToast('✅ Excel tersimpan di folder Download','success');
 }
 
 // ============================================================
