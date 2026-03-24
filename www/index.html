@@ -824,7 +824,7 @@ let products = JSON.parse(localStorage.getItem('pos_products') || '[]');
 let cart = [];
 let discountType = 'nominal';
 let discountValue = 0;
-let transactions = JSON.parse(localStorage.getItem('pos_transactions') || '[]');
+let transactions = JSON.parse(localStorage.getItem('pos_transactions') || '[])); alert("Jumlah transaksi: " + transactions.length + "\nContoh: " + (transactions[0] ? transactions[0].date : "kosong"));
 let settings = JSON.parse(localStorage.getItem('pos_settings') || '{"storeName":"Toko Saya","storeAddress":"","storePhone":""}');
 let btDevice = null, btChar = null;
 let torchOn = false;
@@ -1451,7 +1451,7 @@ function setDateRange(type) {
 }
 
 function renderDashboard() {
-  transactions = JSON.parse(localStorage.getItem('pos_transactions') || '[]');
+  transactions = JSON.parse(localStorage.getItem('pos_transactions') || '[])); alert("Jumlah transaksi: " + transactions.length + "\nContoh: " + (transactions[0] ? transactions[0].date : "kosong"));
   const fromStr = document.getElementById('date-from').value;
   const toStr = document.getElementById('date-to').value;
   if (!fromStr || !toStr) return;
