@@ -1134,7 +1134,7 @@ function setExportRange(type) {
   }
 }
 
-function doExportExcel() {
+async function doExportExcel() {
   try { transactions = JSON.parse(localStorage.getItem('pos_transactions')||'[]'); } catch(e){transactions=[];}
   try { products = JSON.parse(localStorage.getItem('pos_products')||'[]'); } catch(e){products=[];}
 
