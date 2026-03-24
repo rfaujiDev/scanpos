@@ -1459,7 +1459,22 @@ function renderDashboard() {
   const to = new Date(toStr + 'T23:59:59');
 
   const filtered = transactions.filter(tx => {
-    const txDate = new Date(tx.date);
+    // Handle berbagai format tanggal
+    let txDate;
+    try {
+      // Format: "24/3/2026, 11.11.32" (id-ID locale)
+      const raw = tx.date;
+      if (raw.includes('/')) {
+        const [datePart, timePart] = raw.split(', ');
+        const [day, month, year] = datePart.split('/');
+        const timeFixed = timePart ? timePart.replace(/./g, ':') : '00:00:00';
+        txDate = new Date(`${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${timeFixed}`);
+      } else {
+        txDate = new Date(raw);
+      }
+    } catch(e) {
+      txDate = new Date(tx.date);
+    }
     return txDate >= from && txDate <= to;
   });
 
