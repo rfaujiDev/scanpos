@@ -1047,18 +1047,28 @@ function editSetting(key, label) {
   const val = prompt(label+':', settings[key]||'');
   if (val!==null) { settings[key]=val; saveSettings(); renderSettings(); }
 }
-function exportData() {
-  const data = JSON.stringify({products,transactions,settings},null,2);
-  const blob = new Blob([data],{type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'scanpos-backup-'+new Date().toISOString().slice(0,10)+'.json';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
-  showToast('✅ Tersimpan di folder Download','success');
+async function exportData() {
+  try {
+    const data = JSON.stringify({products,transactions,settings},null,2);
+    const fname = 'scanpos-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    const { Filesystem, Share } = Capacitor.Plugins;
+    // Simpan sementara ke cache
+    const result = await Filesystem.writeFile({
+      path: fname,
+      data: btoa(unescape(encodeURIComponent(data))),
+      directory: 'CACHE',
+      recursive: true
+    });
+    // Share via dialog Android
+    await Share.share({
+      title: 'Backup Data ScanPOS',
+      text: 'Backup data ScanPOS - '+new Date().toLocaleDateString('id-ID'),
+      url: result.uri,
+      dialogTitle: 'Simpan atau kirim backup data'
+    });
+  } catch(e) {
+    showToast('Gagal export: '+(e.message||e),'error');
+  }
 }
 function importData(e) {
   const file = e.target.files[0]; if (!file) return;
@@ -1229,18 +1239,28 @@ function doExportExcel() {
   }
 
   const fname = 'ScanPOS-Laporan-'+fromStr+'-sd-'+toStr+'.xlsx';
-  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-  const blob = new Blob([wbout], {type:'application/octet-stream'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fname;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
-  closeModal('modal-export');
-  showToast('✅ Excel tersimpan di folder Download','success');
+  try {
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
+    const { Filesystem, Share } = Capacitor.Plugins;
+    // Simpan sementara ke cache
+    const result = await Filesystem.writeFile({
+      path: fname,
+      data: wbout,
+      directory: 'CACHE',
+      recursive: true
+    });
+    closeModal('modal-export');
+    // Share via dialog Android
+    await Share.share({
+      title: 'Laporan ScanPOS',
+      text: 'Laporan penjualan ScanPOS '+fromStr+' s/d '+toStr,
+      url: result.uri,
+      dialogTitle: 'Simpan atau kirim laporan Excel'
+    });
+  } catch(e) {
+    closeModal('modal-export');
+    showToast('Gagal export: '+(e.message||e),'error');
+  }
 }
 
 // ============================================================
