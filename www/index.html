@@ -932,12 +932,6 @@ function renderDash() {
   // Reload data terbaru dari localStorage
   try { transactions = JSON.parse(localStorage.getItem('pos_transactions')||'[]'); } catch(e){transactions=[];}
   try { products = JSON.parse(localStorage.getItem('pos_products')||'[]'); } catch(e){products=[];}
-  if (transactions.length > 0) {
-    const tx = transactions[0];
-    alert('DEBUG TX:\ndate: '+tx.date+'\ndateISO: '+(tx.dateISO||'TIDAK ADA')+'\ntotal: '+tx.total);
-  } else {
-    alert('Tidak ada transaksi di localStorage!');
-  }
 
   const fromStr = document.getElementById('date-from').value;
   const toStr = document.getElementById('date-to').value;
