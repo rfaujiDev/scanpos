@@ -450,6 +450,22 @@
 
   <div class="cart-footer">
     <div class="total-row">
+      <span class="total-label">SUBTOTAL</span>
+      <span class="total-value" style="font-size:16px;color:var(--text2);" id="cart-subtotal">Rp 0</span>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Diskon</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <button id="disc-nominal-btn" class="btn btn-outline btn-sm" style="flex:1;border-color:var(--accent);color:var(--accent);" onclick="setDiscountType('nominal')">Rp Nominal</button>
+        <button id="disc-persen-btn" class="btn btn-outline btn-sm" style="flex:1;" onclick="setDiscountType('persen')">% Persen</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="form-input" id="discount-input" type="number" placeholder="0" oninput="updateDiscount()" style="flex:1;padding:8px 12px;">
+        <span id="discount-label" style="font-size:13px;font-weight:800;color:var(--accent);min-width:32px;">Rp</span>
+        <span id="discount-amount" style="font-size:13px;font-weight:800;color:var(--red);min-width:60px;text-align:right;"></span>
+      </div>
+    </div>
+    <div class="total-row">
       <span class="total-label">TOTAL BAYAR</span>
       <span class="total-value" id="cart-total">Rp 0</span>
     </div>
@@ -464,12 +480,83 @@
       <div class="header-title">📦 Produk</div>
       <div class="header-sub" id="product-count-label">0 produk</div>
     </div>
+    <div class="icon-btn" onclick="showLowStockDetail()" title="Cek stok menipis">⚠️</div>
   </div>
   <div class="search-bar">
     <input class="search-input" type="text" placeholder="Cari nama / barcode..." id="search-input" oninput="filterProducts()">
   </div>
   <div class="products-grid" id="products-grid"></div>
   <button class="fab" onclick="openAddProduct()">＋</button>
+</div>
+
+<!-- ===================== SCREEN: DASHBOARD ===================== -->
+<div class="screen" id="dashboard-screen">
+  <div class="header">
+    <div>
+      <div class="header-title">📊 Dashboard</div>
+      <div class="header-sub">Laporan Penjualan</div>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px;padding-bottom:80px;display:flex;flex-direction:column;gap:12px;">
+    
+    <!-- Range Tanggal -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+      <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Filter Tanggal</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button class="btn btn-outline btn-sm" onclick="setDateRange('today')" id="range-today" style="flex:1;">Hari Ini</button>
+        <button class="btn btn-outline btn-sm" onclick="setDateRange('week')" id="range-week" style="flex:1;">7 Hari</button>
+        <button class="btn btn-outline btn-sm" onclick="setDateRange('month')" id="range-month" style="flex:1;">Bulan Ini</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="flex:1;">
+          <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:4px;">Dari</div>
+          <input type="date" id="date-from" class="form-input" style="padding:8px 12px;" oninput="renderDashboard()">
+        </div>
+        <div style="font-size:18px;color:var(--text2);margin-top:16px;">→</div>
+        <div style="flex:1;">
+          <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:4px;">Sampai</div>
+          <input type="date" id="date-to" class="form-input" style="padding:8px 12px;" oninput="renderDashboard()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Kartu Ringkasan -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+        <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Total Penjualan</div>
+        <div style="font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--green);margin-top:6px;" id="dash-total">Rp 0</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+        <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Jml Transaksi</div>
+        <div style="font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--accent);margin-top:6px;" id="dash-count">0</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+        <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Total Keuntungan</div>
+        <div style="font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--yellow);margin-top:6px;" id="dash-profit">Rp 0</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+        <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Total Item Terjual</div>
+        <div style="font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--accent2);margin-top:6px;" id="dash-items">0</div>
+      </div>
+    </div>
+
+    <!-- Produk Terlaris -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;">🏆 Produk Terlaris</div>
+      <div id="dash-top-products" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">Belum ada data</div>
+      </div>
+    </div>
+
+    <!-- Transaksi per Hari -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;">📅 Penjualan per Hari</div>
+      <div id="dash-daily" style="display:flex;flex-direction:column;gap:6px;">
+        <div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">Belum ada data</div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <!-- ===================== SCREEN: HISTORY ===================== -->
@@ -570,6 +657,27 @@
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
 </div>
 
+<!-- ===================== MODAL: WHATSAPP ===================== -->
+<div class="modal-overlay" id="modal-whatsapp">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💬 Kirim Struk via WhatsApp</div>
+    <div class="form-group">
+      <label class="form-label">Nomor HP Pembeli</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;font-weight:700;color:var(--text2);">+62</div>
+        <input class="form-input" id="wa-number" type="tel" placeholder="8123456789" style="flex:1;">
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:6px;font-weight:600;">Contoh: 8123456789 (tanpa 0 di depan)</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text2);max-height:120px;overflow-y:auto;" id="wa-preview"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-whatsapp')" style="flex:1;">Batal</button>
+      <button class="btn" onclick="sendWhatsApp()" style="flex:1;background:#25D366;color:#fff;font-size:15px;font-weight:800;">💬 Kirim WhatsApp</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== BOTTOM NAV ===================== -->
 <div class="bottom-nav">
   <div class="nav-item active" id="nav-scan" onclick="showScreen('scan')">
@@ -583,6 +691,10 @@
   <div class="nav-item" id="nav-products" onclick="showScreen('products')">
     <div class="nav-icon">📦</div>
     <span>Produk</span>
+  </div>
+  <div class="nav-item" id="nav-dashboard" onclick="showScreen('dashboard')">
+    <div class="nav-icon">📊</div>
+    <span>Dashboard</span>
   </div>
   <div class="nav-item" id="nav-history" onclick="showScreen('history')">
     <div class="nav-icon">📋</div>
@@ -615,8 +727,18 @@
       <input class="form-input" id="fp-price" type="number" placeholder="5000">
     </div>
     <div class="form-group">
-      <label class="form-label">Stok</label>
-      <input class="form-input" id="fp-stock" type="number" placeholder="100">
+      <label class="form-label">Harga Modal (Rp)</label>
+      <input class="form-input" id="fp-modal" type="number" placeholder="0">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div class="form-group" style="flex:1;">
+        <label class="form-label">Stok</label>
+        <input class="form-input" id="fp-stock" type="number" placeholder="100">
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label class="form-label">Stok Minimal</label>
+        <input class="form-input" id="fp-minstock" type="number" placeholder="10">
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Ikon (emoji)</label>
@@ -673,9 +795,10 @@
     <div class="receipt-container" style="padding:0;">
       <div class="receipt-paper" id="receipt-content"></div>
     </div>
-    <div class="receipt-actions" style="margin-top:12px;">
-      <button class="btn btn-outline" onclick="closeModal('modal-receipt');newTransaction()">🔄 Transaksi Baru</button>
-      <button class="btn btn-primary" onclick="printReceipt()" id="print-btn">🖨️ Print Struk</button>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-receipt');newTransaction()" style="flex:1;">🔄 Baru</button>
+      <button class="btn btn-primary" onclick="printReceipt()" id="print-btn" style="flex:1;">🖨️ Print</button>
+      <button class="btn" onclick="openSendWhatsApp()" style="flex:1;background:#25D366;color:#fff;">💬 WA</button>
     </div>
   </div>
 </div>
@@ -699,6 +822,8 @@
 // ============================================================
 let products = JSON.parse(localStorage.getItem('pos_products') || '[]');
 let cart = [];
+let discountType = 'nominal';
+let discountValue = 0;
 let transactions = JSON.parse(localStorage.getItem('pos_transactions') || '[]');
 let settings = JSON.parse(localStorage.getItem('pos_settings') || '{"storeName":"Toko Saya","storeAddress":"","storePhone":""}');
 let btDevice = null, btChar = null;
@@ -713,18 +838,35 @@ let scannerRunning = false;
 // Seed products if empty
 if (products.length === 0) {
   products = [
-    { id: uid(), barcode: '8991234560001', name: '50-50 Biscuit', price: 5000, stock: 50, icon: '🍪' },
-    { id: uid(), barcode: '8991234560002', name: 'Bourbon Biscuit', price: 10000, stock: 30, icon: '🍫' },
-    { id: uid(), barcode: '8991234560003', name: 'Dairy Milk', price: 40000, stock: 20, icon: '🍬' },
-    { id: uid(), barcode: '8991234560004', name: 'Gobbles Cake', price: 15000, stock: 25, icon: '🎂' },
-    { id: uid(), barcode: '8991234560005', name: 'Aqua 600ml', price: 4000, stock: 100, icon: '💧' },
-    { id: uid(), barcode: '8991234560006', name: 'Indomie Goreng', price: 3500, stock: 200, icon: '🍜' },
+    { id: uid(), barcode: '8991234560001', name: '50-50 Biscuit', price: 5000, modalPrice: 3500, stock: 50, minStock: 10, icon: '🍪' },
+    { id: uid(), barcode: '8991234560002', name: 'Bourbon Biscuit', price: 10000, modalPrice: 7000, stock: 30, minStock: 5, icon: '🍫' },
+    { id: uid(), barcode: '8991234560003', name: 'Dairy Milk', price: 40000, modalPrice: 30000, stock: 20, minStock: 5, icon: '🍬' },
+    { id: uid(), barcode: '8991234560004', name: 'Gobbles Cake', price: 15000, modalPrice: 10000, stock: 25, minStock: 5, icon: '🎂' },
+    { id: uid(), barcode: '8991234560005', name: 'Aqua 600ml', price: 4000, modalPrice: 2500, stock: 100, minStock: 20, icon: '💧' },
+    { id: uid(), barcode: '8991234560006', name: 'Indomie Goreng', price: 3500, modalPrice: 2500, stock: 200, minStock: 50, icon: '🍜' },
   ];
   saveProducts();
 }
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function saveProducts() { localStorage.setItem('pos_products', JSON.stringify(products)); }
+
+function checkLowStock() {
+  const low = products.filter(p => p.minStock > 0 && p.stock <= p.minStock && p.stock > 0);
+  const empty = products.filter(p => p.stock <= 0);
+  if (empty.length > 0) {
+    showToast('⚠️ ' + empty.length + ' produk HABIS!', 'error');
+  } else if (low.length > 0) {
+    showToast('⚠️ ' + low.length + ' produk stok menipis!', 'error');
+  }
+}
+
+function showLowStockDetail() {
+  const low = products.filter(p => p.minStock > 0 && p.stock <= p.minStock);
+  if (low.length === 0) { showToast('Semua stok aman ✅', 'success'); return; }
+  const msg = low.map(p => p.icon + ' ' + p.name + ': ' + p.stock + ' (min ' + p.minStock + ')').join('\n');
+  alert('⚠️ Produk Stok Menipis:\n\n' + msg);
+}
 function saveTransactions() { localStorage.setItem('pos_transactions', JSON.stringify(transactions)); }
 function saveSettings() { localStorage.setItem('pos_settings', JSON.stringify(settings)); }
 function formatRp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
@@ -745,6 +887,7 @@ function showScreen(name) {
   if (name === 'cart') renderCart();
   if (name === 'history') renderHistory();
   if (name === 'settings') renderSettings();
+  if (name === 'dashboard') { setDateRange('today'); }
 }
 
 function goToCart() { showScreen('cart'); }
@@ -847,7 +990,9 @@ function renderCart() {
   const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
   const items = cart.reduce((a, c) => a + c.qty, 0);
   sub.textContent = `${items} item`;
+  document.getElementById('cart-subtotal').textContent = formatRp(total);
   document.getElementById('cart-total').textContent = formatRp(total);
+  updateDiscount();
   el.innerHTML = cart.map((item, i) => `
     <div class="cart-item">
       <div class="cart-item-icon">${item.icon || '📦'}</div>
@@ -885,10 +1030,45 @@ function clearCart() {
 // ============================================================
 // PAYMENT
 // ============================================================
+function setDiscountType(type) {
+  discountType = type;
+  document.getElementById('discount-label').textContent = type === 'nominal' ? 'Rp' : '%';
+  document.getElementById('disc-nominal-btn').style.borderColor = type === 'nominal' ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('disc-nominal-btn').style.color = type === 'nominal' ? 'var(--accent)' : 'var(--text)';
+  document.getElementById('disc-persen-btn').style.borderColor = type === 'persen' ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('disc-persen-btn').style.color = type === 'persen' ? 'var(--accent)' : 'var(--text)';
+  updateDiscount();
+}
+
+function updateDiscount() {
+  const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const input = parseFloat(document.getElementById('discount-input').value) || 0;
+  let discAmount = 0;
+  if (discountType === 'nominal') {
+    discAmount = Math.min(input, subtotal);
+  } else {
+    discAmount = Math.min(input, 100) / 100 * subtotal;
+  }
+  discountValue = discAmount;
+  const total = Math.max(0, subtotal - discAmount);
+  document.getElementById('cart-subtotal').textContent = formatRp(subtotal);
+  document.getElementById('discount-amount').textContent = discAmount > 0 ? '- ' + formatRp(discAmount) : '';
+  document.getElementById('cart-total').textContent = formatRp(total);
+}
+
+function getDiscountAmount() {
+  const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const input = parseFloat(document.getElementById('discount-input').value) || 0;
+  if (discountType === 'nominal') return Math.min(input, subtotal);
+  return Math.min(input, 100) / 100 * subtotal;
+}
+
 function openPayment() {
   if (cart.length === 0) { showToast('Keranjang kosong!', 'error'); return; }
   paymentInput = '';
-  const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const discAmount = getDiscountAmount();
+  const total = Math.max(0, subtotal - discAmount);
   document.getElementById('pay-total').textContent = formatRp(total);
   document.getElementById('pay-input').textContent = '0';
   document.getElementById('pay-change').textContent = '';
@@ -914,14 +1094,21 @@ function numInput(val) {
 }
 
 function processPayment() {
-  const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const discAmount = getDiscountAmount();
+  const total = Math.max(0, subtotal - discAmount);
   const paid = parseInt(paymentInput || '0');
   if (paid < total) { showToast('Uang tidak cukup!', 'error'); return; }
   const change = paid - total;
+  const discInput = parseFloat(document.getElementById('discount-input').value) || 0;
   const tx = {
     id: 'TRX' + Date.now(),
     date: new Date().toLocaleString('id-ID'),
     items: cart.map(c => ({ ...c })),
+    subtotal,
+    discountType,
+    discountInput: discInput,
+    discountAmount: discAmount,
     total, paid, change
   };
   transactions.unshift(tx);
@@ -935,6 +1122,7 @@ function processPayment() {
   lastTransaction = tx;
   closeModal('modal-payment');
   showReceipt(tx);
+  setTimeout(() => checkLowStock(), 2000);
 }
 
 // ============================================================
@@ -955,6 +1143,10 @@ function buildReceiptHTML(tx) {
     <hr class="r-divider">
     ${itemsHTML}
     <hr class="r-divider">
+    ${tx.discountAmount > 0 ? `
+    <div class="r-row"><span>Subtotal</span><span>${formatRp(tx.subtotal)}</span></div>
+    <div class="r-row" style="color:#e53e3e;"><span>Diskon (${tx.discountType === 'persen' ? tx.discountInput + '%' : 'Nominal'})</span><span>- ${formatRp(tx.discountAmount)}</span></div>
+    ` : ''}
     <div class="r-row r-total"><span>TOTAL</span><span>${formatRp(tx.total)}</span></div>
     <div class="r-row"><span>Bayar</span><span>${formatRp(tx.paid)}</span></div>
     <div class="r-row"><span>Kembalian</span><span>${formatRp(tx.change)}</span></div>
@@ -969,8 +1161,55 @@ function showReceipt(tx) {
   openModal('modal-receipt');
 }
 
+function buildWhatsAppText(tx) {
+  const storeInfo = settings;
+  const lines = [
+    '*' + (storeInfo.storeName || 'Toko Saya') + '*',
+    storeInfo.storeAddress ? storeInfo.storeAddress : '',
+    storeInfo.storePhone ? 'Telp: ' + storeInfo.storePhone : '',
+    '--------------------------------',
+    'No: ' + tx.id,
+    'Tgl: ' + tx.date,
+    '--------------------------------',
+    ...tx.items.map(i => i.icon + ' *' + i.name + '*\n    ' + i.qty + ' x ' + formatRp(i.price) + ' = ' + formatRp(i.price * i.qty)),
+    '--------------------------------',
+    tx.discountAmount > 0 ? 'Subtotal: ' + formatRp(tx.subtotal) : '',
+    tx.discountAmount > 0 ? 'Diskon: - ' + formatRp(tx.discountAmount) : '',
+    '*TOTAL: ' + formatRp(tx.total) + '*',
+    'Bayar: ' + formatRp(tx.paid),
+    'Kembalian: ' + formatRp(tx.change),
+    '--------------------------------',
+    '_Terima kasih sudah berbelanja!_ 😊',
+  ].filter(l => l !== '').join('\n');
+  return lines;
+}
+
+function openSendWhatsApp() {
+  if (!lastTransaction) return;
+  document.getElementById('wa-number').value = '';
+  const preview = buildWhatsAppText(lastTransaction);
+  document.getElementById('wa-preview').textContent = preview;
+  closeModal('modal-receipt');
+  openModal('modal-whatsapp');
+}
+
+function sendWhatsApp() {
+  const num = document.getElementById('wa-number').value.trim().replace(/^0/, '');
+  if (!num) { showToast('Masukkan nomor HP dulu!', 'error'); return; }
+  const phone = '62' + num;
+  const text = buildWhatsAppText(lastTransaction);
+  const encoded = encodeURIComponent(text);
+  const url = 'https://wa.me/' + phone + '?text=' + encoded;
+  window.open(url, '_blank');
+  closeModal('modal-whatsapp');
+  showToast('✅ WhatsApp dibuka!', 'success');
+}
+
 function newTransaction() {
   cart = [];
+  discountValue = 0;
+  document.getElementById('discount-input').value = '';
+  document.getElementById('discount-amount').textContent = '';
   updateCartBadge();
   showScreen('scan');
   showToast('Siap transaksi baru ✅', 'success');
@@ -1097,7 +1336,8 @@ function renderProducts(filter = '') {
       <div class="p-name">${p.name}</div>
       <div class="p-barcode">${p.barcode || '-'}</div>
       <div class="p-price">${formatRp(p.price)}</div>
-      <div class="p-stock ${p.stock > 10 ? 'stock-ok' : 'stock-low'}">Stok: ${p.stock}</div>
+      ${p.modalPrice ? `<div style="font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;">Modal: ${formatRp(p.modalPrice)}</div>` : ''}
+    <div class="p-stock ${p.stock <= 0 ? 'stock-low' : p.minStock > 0 && p.stock <= p.minStock ? 'stock-low' : 'stock-ok'}">Stok: ${p.stock}${p.minStock > 0 ? ' / min ' + p.minStock : ''}</div>
     </div>`).join('');
 }
 
@@ -1110,7 +1350,9 @@ function openAddProduct() {
   document.getElementById('fp-barcode').value = '';
   document.getElementById('fp-name').value = '';
   document.getElementById('fp-price').value = '';
+  document.getElementById('fp-modal').value = '';
   document.getElementById('fp-stock').value = '';
+  document.getElementById('fp-minstock').value = '';
   document.getElementById('fp-icon').value = '📦';
   document.getElementById('fp-edit-id').value = '';
   openModal('modal-product');
@@ -1128,7 +1370,9 @@ function openEditProduct(id) {
   document.getElementById('fp-barcode').value = p.barcode;
   document.getElementById('fp-name').value = p.name;
   document.getElementById('fp-price').value = p.price;
+  document.getElementById('fp-modal').value = p.modalPrice || '';
   document.getElementById('fp-stock').value = p.stock;
+  document.getElementById('fp-minstock').value = p.minStock || '';
   document.getElementById('fp-icon').value = p.icon || '📦';
   document.getElementById('fp-edit-id').value = id;
   openModal('modal-product');
@@ -1142,7 +1386,9 @@ function saveProduct() {
   const data = {
     barcode: document.getElementById('fp-barcode').value.trim(),
     name, price,
+    modalPrice: parseInt(document.getElementById('fp-modal').value) || 0,
     stock: parseInt(document.getElementById('fp-stock').value) || 0,
+    minStock: parseInt(document.getElementById('fp-minstock').value) || 0,
     icon: document.getElementById('fp-icon').value.trim() || '📦',
   };
   if (editId) {
@@ -1166,6 +1412,130 @@ function scanForProduct() {
 // ============================================================
 // HISTORY
 // ============================================================
+function toDateStr(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function setDateRange(type) {
+  const today = new Date();
+  const todayStr = toDateStr(today);
+  document.getElementById('range-today').style.background = '';
+  document.getElementById('range-week').style.background = '';
+  document.getElementById('range-month').style.background = '';
+  if (type === 'today') {
+    document.getElementById('date-from').value = todayStr;
+    document.getElementById('date-to').value = todayStr;
+    document.getElementById('range-today').style.background = 'var(--accent)';
+    document.getElementById('range-today').style.color = '#fff';
+    document.getElementById('range-today').style.borderColor = 'var(--accent)';
+  } else if (type === 'week') {
+    const week = new Date(today);
+    week.setDate(today.getDate() - 6);
+    document.getElementById('date-from').value = toDateStr(week);
+    document.getElementById('date-to').value = todayStr;
+    document.getElementById('range-week').style.background = 'var(--accent)';
+    document.getElementById('range-week').style.color = '#fff';
+    document.getElementById('range-week').style.borderColor = 'var(--accent)';
+  } else if (type === 'month') {
+    const month = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('date-from').value = toDateStr(month);
+    document.getElementById('date-to').value = todayStr;
+    document.getElementById('range-month').style.background = 'var(--accent)';
+    document.getElementById('range-month').style.color = '#fff';
+    document.getElementById('range-month').style.borderColor = 'var(--accent)';
+  }
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const fromStr = document.getElementById('date-from').value;
+  const toStr = document.getElementById('date-to').value;
+  if (!fromStr || !toStr) return;
+
+  const from = new Date(fromStr + 'T00:00:00');
+  const to = new Date(toStr + 'T23:59:59');
+
+  const filtered = transactions.filter(tx => {
+    const txDate = new Date(tx.date);
+    return txDate >= from && txDate <= to;
+  });
+
+  // Hitung total
+  const totalPenjualan = filtered.reduce((a, tx) => a + tx.total, 0);
+  const jumlahTransaksi = filtered.length;
+  const totalItems = filtered.reduce((a, tx) => a + tx.items.reduce((b, i) => b + i.qty, 0), 0);
+
+  // Hitung keuntungan (harga jual - harga modal)
+  let totalProfit = 0;
+  filtered.forEach(tx => {
+    tx.items.forEach(item => {
+      const produk = products.find(p => p.id === item.id);
+      const modal = produk ? (produk.modalPrice || 0) : (item.modalPrice || 0);
+      totalProfit += (item.price - modal) * item.qty;
+    });
+    if (tx.discountAmount) totalProfit -= tx.discountAmount;
+  });
+
+  document.getElementById('dash-total').textContent = formatRp(totalPenjualan);
+  document.getElementById('dash-count').textContent = jumlahTransaksi;
+  document.getElementById('dash-profit').textContent = formatRp(Math.max(0, totalProfit));
+  document.getElementById('dash-items').textContent = totalItems;
+
+  // Produk terlaris
+  const produkMap = {};
+  filtered.forEach(tx => {
+    tx.items.forEach(item => {
+      if (!produkMap[item.name]) produkMap[item.name] = { name: item.name, icon: item.icon || '📦', qty: 0, total: 0 };
+      produkMap[item.name].qty += item.qty;
+      produkMap[item.name].total += item.price * item.qty;
+    });
+  });
+  const topProduk = Object.values(produkMap).sort((a, b) => b.qty - a.qty).slice(0, 5);
+  const topEl = document.getElementById('dash-top-products');
+  if (topProduk.length === 0) {
+    topEl.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">Belum ada data</div>';
+  } else {
+    const maxQty = topProduk[0].qty;
+    topEl.innerHTML = topProduk.map((p, i) => `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:18px;width:28px;text-align:center;">${p.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:800;">${p.name}</div>
+          <div style="background:var(--surface2);border-radius:99px;height:6px;margin-top:4px;overflow:hidden;">
+            <div style="background:var(--accent);height:100%;width:${Math.round(p.qty/maxQty*100)}%;border-radius:99px;"></div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px;font-weight:800;color:var(--accent);">${p.qty} pcs</div>
+          <div style="font-size:11px;color:var(--text2);">${formatRp(p.total)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Penjualan per hari
+  const dailyMap = {};
+  filtered.forEach(tx => {
+    const d = new Date(tx.date).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+    if (!dailyMap[d]) dailyMap[d] = { total: 0, count: 0 };
+    dailyMap[d].total += tx.total;
+    dailyMap[d].count++;
+  });
+  const dailyEl = document.getElementById('dash-daily');
+  const dailyEntries = Object.entries(dailyMap);
+  if (dailyEntries.length === 0) {
+    dailyEl.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">Belum ada data</div>';
+  } else {
+    dailyEl.innerHTML = dailyEntries.map(([date, data]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:13px;font-weight:800;">${date}</div>
+          <div style="font-size:11px;color:var(--text2);">${data.count} transaksi</div>
+        </div>
+        <div style="font-size:14px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--green);">${formatRp(data.total)}</div>
+      </div>`).join('');
+  }
+}
+
 function renderHistory() {
   const el = document.getElementById('history-list');
   if (transactions.length === 0) {
