@@ -437,15 +437,17 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 // Parse tanggal format "24/3/2026, 11.11.32" atau ISO
 function parseTxDate(raw) {
   if (!raw) return new Date(0);
-  // Format id-ID: "24/3/2026, 11.11.32"
+  // Format id-ID: "24/3/2026, 11.11.32" atau "24/3/2026, 11.11.32 WIB"
   if (raw.indexOf('/') > -1) {
-    const [datePart, timePart] = raw.split(', ');
-    const p = datePart.split('/');
-    if (p.length === 3) {
-      const d = p[0].padStart(2,'0');
-      const m = p[1].padStart(2,'0');
-      const y = p[2];
-      const t = timePart ? timePart.replace(/\./g,':') : '00:00:00';
+    const parts = raw.split(', ');
+    const datePart = parts[0];
+    const timePart = parts[1] ? parts[1].replace(/[^0-9:.]/g,'').trim() : '00:00:00';
+    const dp = datePart.split('/');
+    if (dp.length === 3) {
+      const d = dp[0].trim().padStart(2,'0');
+      const m = dp[1].trim().padStart(2,'0');
+      const y = dp[2].trim();
+      const t = timePart.replace(/\./g,':');
       const dt = new Date(y+'-'+m+'-'+d+'T'+t);
       if (!isNaN(dt)) return dt;
     }
@@ -939,8 +941,13 @@ function renderDash() {
   const to = new Date(toStr+'T23:59:59');
 
   const filtered = transactions.filter(tx=>{
-    // Gunakan dateISO jika ada, fallback ke parse manual
-    const dt = tx.dateISO ? new Date(tx.dateISO) : parseTxDate(tx.date);
+    let dt;
+    if (tx.dateISO) {
+      dt = new Date(tx.dateISO);
+    } else {
+      dt = parseTxDate(tx.date);
+    }
+    if (isNaN(dt)) dt = parseTxDate(tx.date);
     return dt >= from && dt <= to;
   });
 
@@ -1144,7 +1151,13 @@ async function doExportExcel() {
   const to = new Date(toStr+'T23:59:59');
 
   const filtered = transactions.filter(tx=>{
-    const dt = tx.dateISO ? new Date(tx.dateISO) : parseTxDate(tx.date);
+    let dt;
+    if (tx.dateISO) {
+      dt = new Date(tx.dateISO);
+    } else {
+      dt = parseTxDate(tx.date);
+    }
+    if (isNaN(dt)) dt = parseTxDate(tx.date);
     return dt >= from && dt <= to;
   });
 
