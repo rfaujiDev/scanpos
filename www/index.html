@@ -1451,6 +1451,7 @@ function setDateRange(type) {
 }
 
 function renderDashboard() {
+  transactions = JSON.parse(localStorage.getItem('pos_transactions') || '[]');
   const fromStr = document.getElementById('date-from').value;
   const toStr = document.getElementById('date-to').value;
   if (!fromStr || !toStr) return;
