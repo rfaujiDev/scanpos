@@ -1076,7 +1076,9 @@ function openPayment() {
 }
 
 function numInput(val) {
-  const total = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const discAmount = getDiscountAmount();
+  const total = Math.max(0, subtotal - discAmount);
   if (val === 'clear') { paymentInput = paymentInput.slice(0, -1); }
   else if (val === '000') { paymentInput += '000'; }
   else { paymentInput += val; }
@@ -1203,6 +1205,7 @@ function sendWhatsApp() {
   window.open(url, '_blank');
   closeModal('modal-whatsapp');
   showToast('✅ WhatsApp dibuka!', 'success');
+  setTimeout(() => newTransaction(), 1000);
 }
 
 function newTransaction() {
