@@ -409,6 +409,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div class="form-group" style="flex:1;"><label class="form-label">Stok</label><input class="form-input" id="fp-stock" type="number" placeholder="100"></div>
       <div class="form-group" style="flex:1;"><label class="form-label">Stok Minimal</label><input class="form-input" id="fp-minstock" type="number" placeholder="10"></div>
     </div>
+    <div class="form-group" id="fp-barang-masuk-group" style="display:none;">
+      <label class="form-label">Barang Masuk (tambah stok)</label>
+      <input class="form-input" id="fp-barang-masuk" type="number" placeholder="0" oninput="previewStokAkhir()">
+      <div style="margin-top:6px;font-size:12px;color:var(--text2);font-weight:700;">Stok akhir: <span id="fp-stok-akhir" style="color:var(--green);font-weight:900;">0</span></div>
+    </div>
     <div class="form-group"><label class="form-label">Ikon (emoji)</label><input class="form-input" id="fp-icon" placeholder="📦" maxlength="4"></div>
     <input type="hidden" id="fp-edit-id">
     <div style="display:flex;gap:8px;margin-top:4px;">
@@ -925,6 +930,8 @@ function openAddProduct() {
   ['fp-barcode','fp-name','fp-price','fp-modal','fp-stock','fp-minstock'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fp-icon').value='📦';
   document.getElementById('fp-edit-id').value='';
+  document.getElementById('fp-barang-masuk').value='';
+  document.getElementById('fp-barang-masuk-group').style.display='none';
   document.getElementById('btn-delete-product').style.display='none';
   openModal('modal-product');
 }
@@ -940,9 +947,18 @@ function openEditProduct(id) {
   document.getElementById('fp-minstock').value=p.minStock||'';
   document.getElementById('fp-icon').value=p.icon||'📦';
   document.getElementById('fp-edit-id').value=id;
+  document.getElementById('fp-barang-masuk').value='';
+  document.getElementById('fp-stok-akhir').textContent=p.stock;
+  document.getElementById('fp-barang-masuk-group').style.display='block';
   document.getElementById('btn-delete-product').style.display='block';
   openModal('modal-product');
 }
+function previewStokAkhir() {
+  const stok = parseInt(document.getElementById('fp-stock').value)||0;
+  const masuk = parseInt(document.getElementById('fp-barang-masuk').value)||0;
+  document.getElementById('fp-stok-akhir').textContent = stok + masuk;
+}
+
 function saveProduct() {
   const name = document.getElementById('fp-name').value.trim();
   const price = parseInt(document.getElementById('fp-price').value);
@@ -951,7 +967,7 @@ function saveProduct() {
     barcode: document.getElementById('fp-barcode').value.trim(),
     name, price,
     modalPrice: parseInt(document.getElementById('fp-modal').value)||0,
-    stock: parseInt(document.getElementById('fp-stock').value)||0,
+    stock: (parseInt(document.getElementById('fp-stock').value)||0) + (parseInt(document.getElementById('fp-barang-masuk').value)||0),
     minStock: parseInt(document.getElementById('fp-minstock').value)||0,
     icon: document.getElementById('fp-icon').value.trim()||'📦',
   };
