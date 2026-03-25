@@ -6,6 +6,7 @@
 <title>ScanPOS</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
 :root {
@@ -253,6 +254,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="settings-card">
       <div class="settings-row" onclick="exportData()"><div style="font-size:20px;width:36px;text-align:center;">📤</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Export Backup (JSON)</div><div style="font-size:12px;color:var(--text2);">Backup semua data ke file JSON</div></div></div>
       <div class="settings-row" onclick="openExportExcel()"><div style="font-size:20px;width:36px;text-align:center;">📊</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Export Laporan (Excel)</div><div style="font-size:12px;color:var(--text2);">Transaksi, stok, keuntungan, terlaris</div></div></div>
+      <div class="settings-row" onclick="openExportExcel()"><div style="font-size:20px;width:36px;text-align:center;">📊</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Export Laporan (Excel)</div><div style="font-size:12px;color:var(--text2);">Transaksi, stok, keuntungan, terlaris</div></div></div>
       <div class="settings-row" onclick="document.getElementById('import-file').click()"><div style="font-size:20px;width:36px;text-align:center;">📥</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Import Data</div><div style="font-size:12px;color:var(--text2);">Muat data dari file JSON</div></div></div>
     </div>
     <div style="text-align:center;color:var(--text2);font-size:12px;font-weight:700;padding:8px;">ScanPOS v2.0 – Data tersimpan lokal</div>
@@ -301,6 +303,51 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div style="display:flex;gap:8px;">
       <button class="btn btn-outline" onclick="closeModal('modal-export')" style="flex:1;">Batal</button>
       <button class="btn btn-primary" onclick="doExportExcel()" style="flex:1;">📥 Download Excel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EXPORT EXCEL -->
+<div class="modal-overlay" id="modal-export">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="font-size:18px;font-weight:900;margin-bottom:14px;">📊 Export Excel</div>
+    <div class="dash-card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Range Tanggal</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button class="btn btn-sm btn-outline" onclick="setExportRange('today')" style="flex:1;">Hari Ini</button>
+        <button class="btn btn-sm btn-outline" onclick="setExportRange('week')" style="flex:1;">7 Hari</button>
+        <button class="btn btn-sm btn-outline" onclick="setExportRange('month')" style="flex:1;">Bulan Ini</button>
+        <button class="btn btn-sm btn-outline" onclick="setExportRange('all')" style="flex:1;">Semua</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="flex:1;"><div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:4px;">Dari</div><input type="date" id="export-from" class="form-input" style="padding:8px 12px;"></div>
+        <div style="font-size:18px;color:var(--text2);margin-top:16px;">→</div>
+        <div style="flex:1;"><div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:4px;">Sampai</div><input type="date" id="export-to" class="form-input" style="padding:8px 12px;"></div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Sheet yang akan di-export</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <input type="checkbox" id="ex-transaksi" checked style="width:18px;height:18px;accent-color:var(--accent);">
+        <div><div style="font-size:14px;font-weight:700;">📊 Data Transaksi</div><div style="font-size:11px;color:var(--text2);">Semua transaksi sesuai range tanggal</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <input type="checkbox" id="ex-stok" checked style="width:18px;height:18px;accent-color:var(--accent);">
+        <div><div style="font-size:14px;font-weight:700;">📦 Data Stok Barang</div><div style="font-size:11px;color:var(--text2);">Semua produk & stok saat ini</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <input type="checkbox" id="ex-keuntungan" checked style="width:18px;height:18px;accent-color:var(--accent);">
+        <div><div style="font-size:14px;font-weight:700;">💰 Laporan Keuntungan</div><div style="font-size:11px;color:var(--text2);">Keuntungan per transaksi per hari</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <input type="checkbox" id="ex-terlaris" checked style="width:18px;height:18px;accent-color:var(--accent);">
+        <div><div style="font-size:14px;font-weight:700;">🏆 Produk Terlaris</div><div style="font-size:11px;color:var(--text2);">Ranking produk berdasarkan penjualan</div></div>
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-export')" style="flex:1;">Batal</button>
+      <button class="btn btn-primary" onclick="doExportExcel()" style="flex:1;">📥 Export Excel</button>
     </div>
   </div>
 </div>
@@ -1280,6 +1327,182 @@ async function doExportExcel() {
     await Share.share({
       title: 'Laporan ScanPOS',
       text: 'Laporan penjualan ScanPOS '+fromStr+' s/d '+toStr,
+      url: result.uri,
+      dialogTitle: 'Simpan atau kirim laporan Excel'
+    });
+  } catch(e) {
+    closeModal('modal-export');
+    showToast('Gagal export: '+(e.message||e),'error');
+  }
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+async function exportData() {
+  try {
+    const data = JSON.stringify({products,transactions,settings},null,2);
+    const fname = 'scanpos-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    const { Filesystem, Share } = Capacitor.Plugins;
+    const result = await Filesystem.writeFile({
+      path: fname,
+      data: btoa(unescape(encodeURIComponent(data))),
+      directory: 'CACHE',
+      recursive: true
+    });
+    await Share.share({
+      title: 'Backup Data ScanPOS',
+      text: 'Backup data ScanPOS',
+      url: result.uri,
+      dialogTitle: 'Simpan atau kirim backup data'
+    });
+  } catch(e) {
+    showToast('Gagal export: '+(e.message||e),'error');
+  }
+}
+
+function openExportExcel() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('export-from').value = today;
+  document.getElementById('export-to').value = today;
+  openModal('modal-export');
+}
+
+function setExportRange(type) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  if (type==='today') {
+    document.getElementById('export-from').value = todayStr;
+    document.getElementById('export-to').value = todayStr;
+  } else if (type==='week') {
+    const w = new Date(today); w.setDate(today.getDate()-6);
+    document.getElementById('export-from').value = w.toISOString().slice(0,10);
+    document.getElementById('export-to').value = todayStr;
+  } else if (type==='month') {
+    const m = new Date(today.getFullYear(),today.getMonth(),1);
+    document.getElementById('export-from').value = m.toISOString().slice(0,10);
+    document.getElementById('export-to').value = todayStr;
+  } else if (type==='all') {
+    document.getElementById('export-from').value = '2000-01-01';
+    document.getElementById('export-to').value = todayStr;
+  }
+}
+
+async function doExportExcel() {
+  try {
+    transactions = JSON.parse(localStorage.getItem('pos_transactions')||'[]');
+    products = JSON.parse(localStorage.getItem('pos_products')||'[]');
+
+    const fromStr = document.getElementById('export-from').value;
+    const toStr = document.getElementById('export-to').value;
+    const from = new Date(fromStr+'T00:00:00');
+    const to = new Date(toStr+'T23:59:59');
+
+    const filtered = transactions.filter(tx=>{
+      const dt = tx.dateISO ? new Date(tx.dateISO) : parseTxDate(tx.date);
+      return dt >= from && dt <= to;
+    });
+
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Data Transaksi
+    if (document.getElementById('ex-transaksi').checked) {
+      const rows = [['No','ID Transaksi','Tanggal','Produk','Qty','Harga Satuan','Subtotal Item','Diskon','Total','Bayar','Kembalian']];
+      let no = 1;
+      filtered.forEach(tx=>{
+        tx.items.forEach((item,i)=>{
+          rows.push([
+            i===0?no:'',
+            i===0?tx.id:'',
+            i===0?tx.date:'',
+            item.name,
+            item.qty,
+            item.price,
+            item.price*item.qty,
+            i===0?(tx.discountAmount||0):'',
+            i===0?tx.total:'',
+            i===0?tx.paid:'',
+            i===0?tx.change:'',
+          ]);
+        });
+        no++;
+      });
+      rows.push([]);
+      rows.push(['','','','','','TOTAL','','',filtered.reduce((a,tx)=>a+tx.total,0),'','']);
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{wch:5},{wch:20},{wch:20},{wch:25},{wch:8},{wch:15},{wch:15},{wch:12},{wch:15},{wch:15},{wch:15}];
+      XLSX.utils.book_append_sheet(wb, ws, 'Data Transaksi');
+    }
+
+    // Sheet 2: Data Stok
+    if (document.getElementById('ex-stok').checked) {
+      const rows = [['No','Nama Produk','Barcode','Harga Jual','Harga Modal','Stok','Stok Minimal','Status']];
+      products.forEach((p,i)=>{
+        const status = p.stock<=0?'HABIS':p.minStock>0&&p.stock<=p.minStock?'MENIPIS':'AMAN';
+        rows.push([i+1,p.name,p.barcode||'-',p.price,p.modalPrice||0,p.stock,p.minStock||0,status]);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{wch:5},{wch:25},{wch:15},{wch:15},{wch:15},{wch:10},{wch:12},{wch:10}];
+      XLSX.utils.book_append_sheet(wb, ws, 'Data Stok');
+    }
+
+    // Sheet 3: Laporan Keuntungan
+    if (document.getElementById('ex-keuntungan').checked) {
+      const rows = [['Tanggal','ID Transaksi','Total Penjualan','Total Modal','Diskon','Keuntungan Bersih']];
+      filtered.forEach(tx=>{
+        let totalModal = 0;
+        tx.items.forEach(item=>{
+          const prod = products.find(p=>p.id===item.id);
+          totalModal += (prod?prod.modalPrice||0:0)*item.qty;
+        });
+        rows.push([tx.date,tx.id,tx.total,totalModal,tx.discountAmount||0,tx.total-totalModal-(tx.discountAmount||0)]);
+      });
+      rows.push([]);
+      const totalPenjualan = filtered.reduce((a,tx)=>a+tx.total,0);
+      let totalModal = 0;
+      filtered.forEach(tx=>tx.items.forEach(item=>{
+        const prod = products.find(p=>p.id===item.id);
+        totalModal += (prod?prod.modalPrice||0:0)*item.qty;
+      }));
+      const totalDiskon = filtered.reduce((a,tx)=>a+(tx.discountAmount||0),0);
+      rows.push(['TOTAL','',totalPenjualan,totalModal,totalDiskon,totalPenjualan-totalModal-totalDiskon]);
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{wch:20},{wch:20},{wch:18},{wch:15},{wch:12},{wch:18}];
+      XLSX.utils.book_append_sheet(wb, ws, 'Laporan Keuntungan');
+    }
+
+    // Sheet 4: Produk Terlaris
+    if (document.getElementById('ex-terlaris').checked) {
+      const pm = {};
+      filtered.forEach(tx=>tx.items.forEach(item=>{
+        if (!pm[item.id]) pm[item.id]={name:item.name,barcode:item.barcode||'-',qty:0,total:0,profit:0};
+        const prod = products.find(p=>p.id===item.id);
+        const modal = prod?prod.modalPrice||0:0;
+        pm[item.id].qty+=item.qty;
+        pm[item.id].total+=item.price*item.qty;
+        pm[item.id].profit+=(item.price-modal)*item.qty;
+      }));
+      const sorted = Object.values(pm).sort((a,b)=>b.qty-a.qty);
+      const rows = [['Rank','Nama Produk','Barcode','Total Terjual (pcs)','Total Penjualan','Total Keuntungan']];
+      sorted.forEach((p,i)=>rows.push([i+1,p.name,p.barcode,p.qty,p.total,p.profit]));
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{wch:6},{wch:25},{wch:15},{wch:18},{wch:18},{wch:18}];
+      XLSX.utils.book_append_sheet(wb, ws, 'Produk Terlaris');
+    }
+
+    const fname = 'ScanPOS-'+fromStr+'-sd-'+toStr+'.xlsx';
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
+    const { Filesystem, Share } = Capacitor.Plugins;
+    const result = await Filesystem.writeFile({
+      path: fname,
+      data: wbout,
+      directory: 'CACHE',
+      recursive: true
+    });
+    closeModal('modal-export');
+    await Share.share({
+      title: 'Laporan ScanPOS',
+      text: 'Laporan penjualan '+fromStr+' s/d '+toStr,
       url: result.uri,
       dialogTitle: 'Simpan atau kirim laporan Excel'
     });
