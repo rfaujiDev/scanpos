@@ -254,7 +254,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="settings-card">
       <div class="settings-row" onclick="exportData()"><div style="font-size:20px;width:36px;text-align:center;">📤</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Export Backup (JSON)</div><div style="font-size:12px;color:var(--text2);">Backup semua data ke file JSON</div></div></div>
       <div class="settings-row" onclick="openExportExcel()"><div style="font-size:20px;width:36px;text-align:center;">📊</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Export Laporan (Excel)</div><div style="font-size:12px;color:var(--text2);">Transaksi, stok, keuntungan, terlaris</div></div></div>
-      <div class="settings-row" onclick="openExportExcel()"><div style="font-size:20px;width:36px;text-align:center;">📊</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Export Laporan (Excel)</div><div style="font-size:12px;color:var(--text2);">Transaksi, stok, keuntungan, terlaris</div></div></div>
+
       <div class="settings-row" onclick="document.getElementById('import-file').click()"><div style="font-size:20px;width:36px;text-align:center;">📥</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Import Data</div><div style="font-size:12px;color:var(--text2);">Muat data dari file JSON</div></div></div>
     </div>
     <div style="text-align:center;color:var(--text2);font-size:12px;font-weight:700;padding:8px;">ScanPOS v2.0 – Data tersimpan lokal</div>
@@ -348,6 +348,38 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div style="display:flex;gap:8px;">
       <button class="btn btn-outline" onclick="closeModal('modal-export')" style="flex:1;">Batal</button>
       <button class="btn btn-primary" onclick="doExportExcel()" style="flex:1;">📥 Export Excel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BARANG MASUK -->
+<div class="modal-overlay" id="modal-barang-masuk">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="font-size:18px;font-weight:900;margin-bottom:14px;">📥 Barang Masuk</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--text2);font-weight:700;">Produk</div>
+      <div style="font-size:16px;font-weight:800;margin-top:4px;" id="bm-product-name">-</div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px;">
+        <div style="text-align:center;"><div style="font-size:11px;color:var(--text2);font-weight:700;">Stok Saat Ini</div><div style="font-size:22px;font-weight:900;color:var(--yellow);font-family:monospace;" id="bm-stok-now">0</div></div>
+        <div style="font-size:28px;color:var(--text2);padding-top:10px;">+</div>
+        <div style="text-align:center;"><div style="font-size:11px;color:var(--text2);font-weight:700;">Barang Masuk</div><div style="font-size:22px;font-weight:900;color:var(--accent);font-family:monospace;" id="bm-preview-input">0</div></div>
+        <div style="font-size:28px;color:var(--text2);padding-top:10px;">=</div>
+        <div style="text-align:center;"><div style="font-size:11px;color:var(--text2);font-weight:700;">Stok Akhir</div><div style="font-size:22px;font-weight:900;color:var(--green);font-family:monospace;" id="bm-stok-final">0</div></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Jumlah Barang Masuk</label>
+      <input class="form-input" id="bm-jumlah" type="number" placeholder="0" min="1" oninput="previewBM()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Catatan (opsional)</label>
+      <input class="form-input" id="bm-catatan" placeholder="Contoh: Restock dari supplier">
+    </div>
+    <input type="hidden" id="bm-product-id">
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-barang-masuk')" style="flex:1;">Batal</button>
+      <button class="btn btn-success" onclick="simpanBM()" style="flex:1;">✅ Simpan</button>
     </div>
   </div>
 </div>
@@ -964,20 +996,7 @@ function setRange(type) {
   if (type==='today') {
     document.getElementById('date-from').value = todayStr;
     document.getElementById('date-to').value = todayStr;
-    setTimeout(()=>{
-      try { transactions = JSON.parse(localStorage.getItem('pos_transactions')||'[]'); } catch(e){transactions=[];}
-      if (transactions.length > 0) {
-        const tx = transactions[0];
-        const dt = tx.dateISO ? new Date(tx.dateISO) : parseTxDate(tx.date);
-        alert('Total transaksi: '+transactions.length+
-          '\nContoh date: '+tx.date+
-          '\ndateISO: '+(tx.dateISO||'KOSONG')+
-          '\nParsed: '+dt+
-          '\nFrom: '+new Date(todayStr+'T00:00:00')+
-          '\nMatch: '+(dt >= new Date(todayStr+'T00:00:00') && dt <= new Date(todayStr+'T23:59:59')));
-      }
-    }, 500);
-  } else if (type==='week') {
+      } else if (type==='week') {
     const w = new Date(today); w.setDate(today.getDate()-6);
     document.getElementById('date-from').value = w.toISOString().slice(0,10);
     document.getElementById('date-to').value = todayStr;
@@ -1169,6 +1188,42 @@ function showToast(msg, type='') {
   t.className = 'toast show'+(type?' '+type:'');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// BARANG MASUK
+// ============================================================
+function openBarangMasuk(id) {
+  const p = products.find(x=>x.id===id);
+  if (!p) return;
+  document.getElementById('bm-product-id').value = id;
+  document.getElementById('bm-product-name').textContent = (p.icon||'') + ' ' + p.name;
+  document.getElementById('bm-stok-now').textContent = p.stock;
+  document.getElementById('bm-jumlah').value = '';
+  document.getElementById('bm-catatan').value = '';
+  document.getElementById('bm-preview-input').textContent = '0';
+  document.getElementById('bm-stok-final').textContent = p.stock;
+  openModal('modal-barang-masuk');
+}
+function previewBM() {
+  const id = document.getElementById('bm-product-id').value;
+  const p = products.find(x=>x.id===id);
+  if (!p) return;
+  const jumlah = parseInt(document.getElementById('bm-jumlah').value)||0;
+  document.getElementById('bm-preview-input').textContent = jumlah;
+  document.getElementById('bm-stok-final').textContent = p.stock + jumlah;
+}
+function simpanBM() {
+  const id = document.getElementById('bm-product-id').value;
+  const jumlah = parseInt(document.getElementById('bm-jumlah').value)||0;
+  if (jumlah <= 0) { showToast('Masukkan jumlah barang masuk!','error'); return; }
+  const idx = products.findIndex(x=>x.id===id);
+  if (idx === -1) return;
+  products[idx].stock += jumlah;
+  saveProducts();
+  closeModal('modal-barang-masuk');
+  renderProducts();
+  showToast('Stok bertambah ' + jumlah + ' -> Total: ' + products[idx].stock,'success');
 }
 
 // ============================================================
