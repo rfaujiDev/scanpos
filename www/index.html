@@ -865,26 +865,20 @@ async function connectBT() {
   } catch(e) { showToast('Gagal: '+(e.message||e),'error'); }
 }
 async function testPrint() {
+  if (!btDevice) { showToast('Hubungkan printer dulu!','error'); return; }
   try {
     const BTP = Capacitor.Plugins.BluetoothPrinter;
-    const text = 'ScanPOS Test Print
-' +
-      '--------------------------------
-' +
-      'Printer: ' + btDevice.name + '
-' +
-      'Waktu: ' + new Date().toLocaleString('id-ID') + '
-' +
-      '--------------------------------
-' +
-      'Printer berfungsi dengan baik!
-' +
-      '
-
-
-';
-    await BTP.printText({address: btDevice.deviceId, text: text});
-    showToast('✅ Test print berhasil!','success');
+    const lines = [
+      'ScanPOS Test Print',
+      '--------------------------------',
+      'Printer: ' + btDevice.name,
+      'Waktu: ' + new Date().toLocaleString('id-ID'),
+      '--------------------------------',
+      'Printer berfungsi dengan baik!',
+      '','',''
+    ];
+    await BTP.printText({address: btDevice.deviceId, text: lines.join('\n')});
+    showToast('Test print berhasil!','success');
   } catch(e) { showToast('Gagal: '+(e.message||e),'error'); }
 }
 
