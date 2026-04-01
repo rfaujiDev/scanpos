@@ -249,6 +249,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="settings-card">
       <div class="settings-row" onclick="connectBT()"><div style="font-size:20px;width:36px;text-align:center;">🖨️</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Printer Bluetooth</div><div style="font-size:12px;color:var(--text2);" id="s-printer">Belum terhubung</div></div><div id="s-bt-icon">⛔</div></div>
       <div class="settings-row" onclick="disconnectBT()"><div style="font-size:20px;width:36px;text-align:center;">🔌</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Putus Koneksi</div><div style="font-size:12px;color:var(--text2);">Lepas printer Bluetooth</div></div></div>
+      <div class="settings-row" onclick="testPrint()"><div style="font-size:20px;width:36px;text-align:center;">🧪</div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">Test Print</div><div style="font-size:12px;color:var(--text2);">Cetak teks uji coba ke printer</div></div></div>
     </div>
     <div class="settings-section">Data</div>
     <div class="settings-card">
@@ -863,6 +864,30 @@ async function connectBT() {
     }
   } catch(e) { showToast('Gagal: '+(e.message||e),'error'); }
 }
+async function testPrint() {
+  try {
+    const BTP = Capacitor.Plugins.BluetoothPrinter;
+    const text = 'ScanPOS Test Print
+' +
+      '--------------------------------
+' +
+      'Printer: ' + btDevice.name + '
+' +
+      'Waktu: ' + new Date().toLocaleString('id-ID') + '
+' +
+      '--------------------------------
+' +
+      'Printer berfungsi dengan baik!
+' +
+      '
+
+
+';
+    await BTP.printText({address: btDevice.deviceId, text: text});
+    showToast('✅ Test print berhasil!','success');
+  } catch(e) { showToast('Gagal: '+(e.message||e),'error'); }
+}
+
 function disconnectBT() {
   btDevice = null; btChar = null;
   setBtUI(false);
